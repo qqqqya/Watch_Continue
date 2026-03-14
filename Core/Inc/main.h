@@ -31,7 +31,10 @@ extern "C" {
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include "stm32f4xx_hal.h"
+#include "stdio.h"
+#include "stdint.h"
+	
 /* USER CODE END Includes */
 
 /* Exported types ------------------------------------------------------------*/
