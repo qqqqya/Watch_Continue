@@ -23,7 +23,7 @@
 /* USER CODE BEGIN 0 */
 //use printf 要重定向
 int fputc(int ch, FILE *f)
-{
+{ 
   HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF); // 注意这个超时时间
   return ch;
 }
