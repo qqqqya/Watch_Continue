@@ -46,11 +46,39 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+led_status_t led_on_myown(void)
+{
+  printf("led on my own\r\n");
+  HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_RESET);
+  return LED_OK;
 
+};
+led_status_t led_off_myown(void){
+  printf("led off my own\r\n");
+  HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_SET);
+  return LED_OK;
+};
+
+led_status_t get_tick_own_ms(void)
+{
+  return osKernelGetTickCount();
+}
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
+led_operation_t led_operation={
+  .pf_bsp_led_off=led_off_myown,  //结构体中的函数指针  指向实际的led_off_myown函数
+  .pf_bsp_led_on=led_on_myown,
+};
+
+timebase_t timebase_ms={
+  .pf_get_tick_ms=get_tick_own_ms,  //结构体中的函数指针  指向实际的get_tick_own_ms函数
+}; 
+
+os_delay_t  os_delay_ms={
+  .pf_osdelay_ms=osDelay,  //结构体中的函数指针  指向实际的osDelay函数
+};
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
@@ -63,6 +91,8 @@ const osThreadAttr_t defaultTask_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+
+
 
 /* USER CODE END FunctionPrototypes */
 
@@ -123,8 +153,9 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
 	printf("hello win\r\n");     
 	
-	bsp_led_driver_t led_driver;  //定义了结构体 有了内存
-	led_driver_instance(&led_driver, NULL, NULL, NULL);
+	bsp_led_driver_t led_driver;  //定义了结构体 在内存中有了空间
+  /*传入参数也都定义好了 h文件只是声明好了*/
+	led_driver_instance(&led_driver, &led_operation, &timebase_ms, &os_delay_ms);
 
 	for(;;)   
 	{	 
