@@ -35,7 +35,7 @@
 
 //******************************* Defines ***********************************//
 #define IS_INITED         1
-#define ISNT_INITED       0
+#define NOT_INITED       0
 
 #define OS_SUPPORTING       
 #define DEBUG       
@@ -64,10 +64,10 @@ typedef enum
 
 
 typedef enum{
-    BSP_LED_PROPORTION_3_1 = 0,
-    BSP_LED_PROPORTION_2_1 = 1,
-    BSP_LED_PROPORTION_1_1 = 2,
-    BSP_LED_PROPORTION_x_x = 0xff,
+    PROPORTIONN_1_3    = 0,      /* ON/OFF ratio 1:3                         */
+    PROPORTIONN_1_2    = 1,      /* ON/OFF ratio 1:2                         */
+    PROPORTIONN_1_1    = 2,      /* ON/OFF ratio 1:1                         */
+    PROPORTIONN_x_x    = 0xFF,   /* Custom ON/OFF ratio                      */
 
 }led_proportion_t;
 
@@ -94,8 +94,8 @@ typedef struct{
 }os_delay_t;
 #endif
 
-/*后续的目标变量修改  指针函数*/
-typedef led_status_t (*pf_led_control_t)(     bsp_led_driver_t * const self,    //led driver struct pointer
+/*后续的目标变量修改-blink feature  指针函数*/
+typedef led_status_t (*pf_led_control_t)(   bsp_led_driver_t * const self,    //pointer 需要在上面声明
                                             uint32_t     ,              //period ms
                                             uint32_t     ,               //times 
                                             led_proportion_t       //proportion 3:1 2:1 1:1
@@ -111,28 +111,27 @@ typedef struct bsp_led_driver
 {
     /*初始化次数的状态 这个类定义好了 实例化的时候只一次  防止多读多写（多个任务线程同时操作）
         借助枚举告知 实例化次数  是否实例化*/
-            uint8_t                     is_inited;/* is inited  0:no 1:yes*/
+            uint8_t                     is_inited;             /* is inited  0:no 1:yes*/
     /***********define led Blink Configuration feature********* */
     /***********闪烁的设置          **************************** */
-            uint32_t                     blink_period_ms;/*blink period              */
-            uint32_t                     blink_times;/* blink times                  */
-            led_proportion_t         proportion_on_off;/* proportion   3:1 2:1           */
+            uint32_t                    blink_period_ms;       /*blink period              */
+            uint32_t                    blink_times;           /* blink times                  */
+            led_proportion_t            proportion_on_off;     /* proportion   3:1 2:1           */
             
     /***********define Interface Pointers*******    ************ */
     /***********硬件接口指针 -开关          ********* */
             /* led gpio   GPIO_TypeDef*               gpio;    int16_t   pin;*/
             /*因为这里的struct 定义的都是函数指针 所以变量应当都是指针p_*/
-            led_operation_t         *p_led_operation;
+            led_operation_t             *p_led_operation;
             timebase_t                  *p_timebase_ms;
     /***********define rtos change feature********* */
 #ifdef OS_SUPPORTING
             os_delay_t                  *p_os_delay_ms;
 #endif
-
     /***********Control API out interface feature****************************/
     /**************设置目标变量（闪烁）的函数指针  外部接口调用  就是调用函数而已  不需要再定义结构体指针 二次索引
      */
-            pf_led_control_t            pf_led_control;
+            pf_led_control_t             pf_led_control;
                         
 }bsp_led_driver_t;
 

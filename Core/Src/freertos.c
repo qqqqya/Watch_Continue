@@ -48,20 +48,27 @@
 /* USER CODE BEGIN PM */
 led_status_t led_on_myown(void)
 {
-  printf("led on my own\r\n");
-  HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_RESET);
+  // printf("led on my own\r\n");
+	HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_RESET);
   return LED_OK;
 
 };
 led_status_t led_off_myown(void){
-  printf("led off my own\r\n");
-  HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_SET);
+  // printf("led off my own\r\n");
+	HAL_GPIO_WritePin(LED_Test_GPIO_Port, LED_Test_Pin, GPIO_PIN_SET);
   return LED_OK;
 };
 
-led_status_t get_tick_own_ms(void)
+led_status_t get_tick_own_ms(uint32_t *ptick)
 {
-  return osKernelGetTickCount();
+   *ptick = osKernelGetTickCount();
+	return LED_OK;
+}
+led_status_t osdelay_own_ms(uint32_t delay_ms)
+{
+  osDelay(delay_ms);
+  // vTaskDelay(delay_ms);
+  // 解耦了osDelay函数  可以在其他地方调用
 }
 /* USER CODE END PM */
 
@@ -77,7 +84,7 @@ timebase_t timebase_ms={
 }; 
 
 os_delay_t  os_delay_ms={
-  .pf_osdelay_ms=osDelay,  //结构体中的函数指针  指向实际的osDelay函数
+  .pf_osdelay_ms=osdelay_own_ms,  //结构体中的函数指针  指向实际的osDelay函数
 };
 
 /* USER CODE END Variables */
@@ -153,9 +160,23 @@ void StartDefaultTask(void *argument)
   /* Infinite loop */
 	printf("hello win\r\n");     
 	
-	bsp_led_driver_t led_driver;  //定义了结构体 在内存中有了空间
+	bsp_led_driver_t led_1;  //定义了结构体 在内存中有了空间
+	bsp_led_driver_t led_2;  //定义了结构体 在内存中有了空间
   /*传入参数也都定义好了 h文件只是声明好了*/
-	led_driver_instance(&led_driver, &led_operation, &timebase_ms, &os_delay_ms);
+	led_driver_instance(&led_1, &led_operation, &timebase_ms, &os_delay_ms);
+	led_driver_instance(&led_2, &led_operation, &timebase_ms, &os_delay_ms);
+  led_1.pf_led_control(&led_1, 5, 2, PROPORTIONN_1_1);//10ms闪烁2times
+  led_2.pf_led_control(&led_2, 10, 1, PROPORTIONN_1_1);//
+
+
+
+  uint32_t tick;
+// led_1.p_timebase_ms->pf_get_tick_ms(&tick);
+	
+printf("%u\r\n", led_1.p_timebase_ms->pf_get_tick_ms(&tick));  //测试gettick
+	///注意这里还要通过结构体内部的函数指针指向函数才能调用
+// printf("%d\r\n", &led_1.p_timebase_ms());  //测试gettick
+  printf("hello win2222\r\n");     
 
 	for(;;)   
 	{	 
