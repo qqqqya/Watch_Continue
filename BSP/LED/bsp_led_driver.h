@@ -72,6 +72,12 @@ typedef enum{
 }led_proportion_t;
 
 typedef struct{
+    uint32_t period_ms;
+    uint32_t times;
+    led_proportion_t proportion;
+}led_event_t;
+
+typedef struct{
 
     led_status_t (*pf_bsp_led_on)(void);//还需要一个返回值  返回状态给定义enum
     led_status_t (*pf_bsp_led_off)(void);//RETURN       VOID -> led_status_t
