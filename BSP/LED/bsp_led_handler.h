@@ -123,10 +123,25 @@ typedef struct{
                                             );
     /*删除队列*/
     led_handler_status_t (*pf_os_queue_delete)(
-                                                void * const queue_handler,
-                                                uint32_t timeout_ms
+                                                void * const queue_handler
                                             );
 }handler_os_queue_t;
+
+typedef struct{
+    /*创建线程*/
+    led_handler_status_t (*pf_os_thread_create)(
+                                                void * const    thread_func,//指针常量指向的变量也是常量
+                                                char * const    thread_name, //纯指针is常量 void * const th
+                                                const uint16_t   StackDepth,
+                                                void * const      parameter, //给task传入的 内部参数
+                                                uint32_t     priority,  //wait 外部去写
+                                                void ** const     task_handler ////把当前句柄指针传出-还得用二级指针
+                                            );                                
+    /*删除线程*/
+    led_handler_status_t (*pf_os_thread_delete)(
+                                                void * const thread_handler
+                                            );
+}handler_os_thread_t;
 #endif  //end of OS_SUPPORTING
 
 
@@ -136,8 +151,9 @@ typedef struct{
 typedef led_handler_status_t (*pf_handeler_led_control_t)(   bsp_led_handler_t * const self,    //pointer 需要在上面声明
                                             uint32_t     ,              //period ms
                                             uint32_t     ,               //times 
-                                            led_proportion_t       //proportion 3:1 2:1 1:1
-            );
+                                            led_proportion_t,       //proportion 3:1 2:1 1:1
+                                                led_index_t      const     
+                                        );
 
 typedef led_handler_status_t (*pf_handeler_led_register_t)(      
                                             bsp_led_handler_t * const self,    //pointer 需要在上面声明
@@ -169,13 +185,15 @@ typedef struct bsp_led_handler
             instance_mounted_t                  register_led_instances;
 
     /********************************内部接口***************************************************** */
-            handelr_timebase_t                  *p_timebase_ms;
+            handelr_timebase_t                 *p_timebase_ms;
+            void                 *              queue_handler;///适配不同的os  queue
+            void                 *              thread_handler;///适配不同的os  queue
 #ifdef OS_SUPPORTING
             handler_os_delay_t                  *p_os_delay_ms;
-            ///队列创建删除
             handler_os_queue_t                  *p_os_queue_interface;
-            //线程创建· 删除
-            handler_os_critical_t               *p_os_critical;
+             ///包含队列创建删除
+            handler_os_critical_t               *p_os_critical;//临界区
+            handler_os_thread_t                 *p_os_thread;//线程
 #endif
     /********************************外部接口***************************************************** */
     //      FOR APP
@@ -197,6 +215,7 @@ led_handler_status_t led_handler_instance(
 #ifdef OS_SUPPORTING        
                                     handler_os_delay_t       * const os_delay_ms,          //os delay ms   
                                     handler_os_queue_t          * const os_queue, //os queue interface
+                                    handler_os_thread_t          * const os_thread, //os thread interface
                                     handler_os_critical_t       * const os_critical //os critical interface
 #endif
 );

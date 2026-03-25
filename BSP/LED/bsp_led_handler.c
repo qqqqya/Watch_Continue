@@ -27,7 +27,12 @@
 ******************************* fuctions ***********************************
  *****************************************************************************/
 /******************************** includes ************************************/
- #include "bsp_led_handler.h"
+#include "bsp_led_handler.h"
+#include "bsp_led_driver.h"
+#include "FreeRTOS.h"
+#include "queue.h"
+ 
+
 
 /******************************** Declares ************************************/
 static led_handler_status_t __array_init__(bsp_led_driver_t *   arry[], 
@@ -40,6 +45,52 @@ static led_handler_status_t __array_init__(bsp_led_driver_t *   arry[],
     return HANDLER_OK;
 }
 
+ /*准备LED事件结构体     包含LED周期、次数、比例*/
+typedef struct 
+{
+        uint32_t                    period_ms             ;              //period ms
+        uint32_t                    times                 ;               //times
+        led_proportion_t            proportion;      //proportion 3:1 2:1 1:1
+}led_event_t;
+led_handler_status_t handler_thread(void * arguments)
+{   
+	vTaskDelay(1000 );
+#ifdef DEBUG
+        DEBUGPRINT("Start_Tread// \r\n");
+#endif // DEBUG
+
+        led_handler_status_t ret = HANDLER_OK;
+        bsp_led_handler_t * p_led_handler;
+        led_event_t     msg;
+/**************** 1、检查目标是否被实例化 ***********************************/
+        if( NULL  ==  arguments)
+        {
+#ifdef DEBUG
+        DEBUGPRINT("HANDLER_ERRORPARAMETER\r\n");
+#endif  //debug
+            ret = HANDLER_ERRORPARAMETER;
+            return ret;
+        }else{
+                p_led_handler = arguments;//(bsp_led_handler_t *)
+        }
+        printf("parameter in thread: %p\r\n", p_led_handler);
+/**************** 2、检查参数是否合法 ***********************************/
+
+        for(;;){
+		DEBUGPRINT("Running_Tread// \r\n");
+		vTaskDelay(1000 );
+/**************** 3、读取队列中的事件 处理事件  ***********************************/
+	ret = p_led_handler->p_os_queue_interface->pf_os_queue_get(
+                                                        p_led_handler->queue_handler,
+                                                                                &msg,
+                                                                                   0);
+	if(HANDLER_OK==ret){
+		printf("message received\r\n");
+	}
+ 
+        }
+        return ret;
+}
 
 led_handler_status_t led_register(
                                     bsp_led_handler_t * const self,    //pointer 需要在上面声明
@@ -82,14 +133,17 @@ led_handler_status_t led_register(
 #endif
          
 
-
 #ifdef DEBUG
         DEBUGPRINT("led_register Succees!\r\n");
 #endif // DEBUG
         return ret;
 }
-/*@brief 控制LED的行为本函数用于控制指定LED的闪烁行为，包括闪烁周期、闪烁次数以及亮灭比例
 
+
+/*@brief 控制LED的行为本函数用于控制指定LED的闪烁行为，
+包括闪烁周期、闪烁次数以及亮灭比例
+        将事件发送到LED处理的队列中
+                事件处理线程会从队列中读取事件并执行相应的操作
 @param self LED处理器的实例指针，用于访问LED处理器的成员变量和函数
 @param CycLetime 闪烁周期，单位为毫秒，表示一次完整的亮灭循环所需时间
 @param blink_times闪烁次数，表示LED将重复闪烁的次数
@@ -102,7 +156,9 @@ static led_handler_status_t led_control(        bsp_led_handler_t * const    sel
                                                 led_proportion_t            proportion_blink,      //proportion 3:1 2:1 1:1
                                                 led_index_t      const     led_index
 ){
-
+#ifdef DEBUG
+        DEBUGPRINT("Control_Starttttttttttt\r\n");
+#endif  //debug
         led_handler_status_t ret = HANDLER_OK;
 /**************** 1、检查目标是否被实例化 ***********************************/
         if( NULL                  ==  self   ||
@@ -126,19 +182,32 @@ static led_handler_status_t led_control(        bsp_led_handler_t * const    sel
 #endif  //debug
             return LED_ERRORPARAMETER;
         }
-
+#ifdef DEBUG
+        DEBUGPRINT("sending event to queue\r\n");
+#endif  //debug
+// #ifdef DEBUG
+//         printf("period_ms = %d, times = %d, proportion_blink = %d\r\n",period_ms,times,proportion_blink);
+// #endif  //debug
 /****************3、向LED队列中发送事件 ***********************************/
-/*准备LED事件结构体     包含LED周期、次数、比例*/
+/*instance event LED事件结构体     包含LED周期、次数、比例*/
         led_event_t led_event={
                 .period_ms=period_ms,
                 .times=times,
                 .proportion=proportion_blink,
         };
-//将led事件放入到队列中控制led行为
-        // ret = self->p_os_queue_interface->pf_os_queue_put(self->,&led_event,pdMAX_DELAY);
-        //这里的queue从
-//检查队列发送成功p_os_queue->pf_os_queue_send(&led_event);
 
+//将led事件放入到队列中控制led行为
+        ret = self->p_os_queue_interface->pf_os_queue_put(
+                                                        self->queue_handler,
+                                                                &led_event,
+                                                                        0);
+//检查队列发送成功p_os_queue->pf_os_queue_send(&led_event);
+        if(ret != HANDLER_OK)   ///枚举变量名出错  返回的是HANDLER_ERROR
+        {
+#ifdef DEBUG
+            DEBUGPRINT("queueHANDLER_ERRORPARAMETER\r\n");
+#endif  //debug
+        }
         return ret;
 }
 
@@ -147,13 +216,14 @@ static led_handler_status_t led_control(        bsp_led_handler_t * const    sel
         目标变量init 全给0即可
             后续的目标变量修改用的是另一个函数指针*/
 led_handler_status_t led_handler_instance(   
-                                    bsp_led_handler_t           * const self    ,          //led handler struct pointer
-                                                                //这个传入self可以直接操作结构体中的变量
-                                    handelr_timebase_t       * const timebase_ms,         //timebase -tick ms
-#ifdef OS_SUPPORTING        
-                                    handler_os_delay_t       * const os_delay_ms,          //os delay ms   
-                                    handler_os_queue_t          * const os_queue, //os queue interface
-                                    handler_os_critical_t       * const os_critical //os critical interface
+                                    bsp_led_handler_t           *       const self    ,          //led handler struct pointer
+                                                                //      这个传入self可以直接操作结构体中的变量
+                                    handelr_timebase_t          *       const timebase_ms,         //timebase -tick ms
+#ifdef OS_SUPPORTING            
+                                    handler_os_delay_t          *       const os_delay_ms,          //os delay ms   
+                                    handler_os_queue_t          *       const os_queue, //os queue interface
+                                    handler_os_thread_t         *       const os_thread, //os thread interface
+                                    handler_os_critical_t       *       const os_critical //os critical interface
 #endif
 )
 {    
@@ -164,6 +234,7 @@ led_handler_status_t led_handler_instance(
             NULL  ==  os_delay_ms   ||
             NULL  ==  os_queue      ||
             NULL  ==  os_critical   ||
+            NULL  ==  os_thread     ||
 #endif  //debug          
             NULL  ==  timebase_ms       
          )
@@ -195,8 +266,9 @@ led_handler_status_t led_handler_instance(
         self->p_os_queue_interface      = os_queue   ;
         self->p_timebase_ms             = timebase_ms;
         self->p_os_critical             = os_critical;
-        
-        //内部接口
+        self->p_os_thread               = os_thread;
+
+        //内部接口              ----挂载到handler
         self->pf_led_control            = led_control   ;//函数指针 指向led_control函数
         self->pf_led_register           = led_register  ;
 
@@ -204,7 +276,42 @@ led_handler_status_t led_handler_instance(
     
 #endif //#ifndef OS_SUPPORTING
 /************4 、初始化目标变量     闪烁功能变量**********************/
-        /************内部资源初始化--之前是闪烁次数周期等具体的--现在是led对象（实例）的数组**********************/
+
+        /******4.1 任务（线程）初始化*************/
+        ret =    os_thread->pf_os_thread_create(        //
+                                                        handler_thread,
+                                                        "handler_thread1",      //tbd Thread name 不可重名
+                                                        4*128,                  //tbd
+                                                        self,   //param，给task传入的 内部参数
+                                                        0,      ////wait 外部去写   一般是normal
+                                                &(self->thread_handler)     //二级 当前线程的栈指针
+                                        );///这个二级是因为要改变当前的任务的指针所以传二级  删除的时候只需要传入告知即可
+        if(ret != HANDLER_OK)
+        {
+#ifdef DEBUG//创建线程失败打印
+            DEBUGPRINT("HANDLER_ERROR in thread_create\r\n");
+#endif  //debug
+            return ret;
+        }
+
+
+        /******4.2 队列初始化*************/
+        ret = os_queue->pf_os_queue_create(             10,
+                                        sizeof(led_event_t),
+                                        &(self->queue_handler)     //内部定义了一个void *queue_handler;
+                                        ); //！！！传入的是二级指针  加取地址符号才可以传出去队列指针 不然会卡死
+        printf("queue_handler = %p\r\n",self->queue_handler);
+        if(ret != HANDLER_OK)
+        {
+#ifdef DEBUG//创建队列失败打印
+            DEBUGPRINT("HANDLER_ERROR in queue_create\r\n");
+#endif  //debug
+            os_thread->pf_os_thread_delete(self->thread_handler); //后一步创建失败才会删除线程 防止内存泄漏
+            return ret;
+        }
+
+        /******4.3 内部资源初始化************/
+        /*-之前是闪烁次数周期等具体的--现在是led对象（实例）的数组**********************/
         self->register_led_instances.led_instance_num = 0;  //index init=0
         ret = __array_init__(self->register_led_instances.led_instance_aarry,
                                 MAX_LED_INSTANCES);
@@ -213,7 +320,10 @@ led_handler_status_t led_handler_instance(
 #ifdef DEBUG
             DEBUGPRINT("HANDLER_ERRORPARAMETER\r\n");
 #endif  //debug
-            return ret;
+                self->p_os_queue_interface->pf_os_queue_delete(self->queue_handler);
+                self->queue_handler = NULL;
+                //shutdown os queue 防止内存泄漏
+                return ret;
         }
         
         self->is_inited = HANDLER_IS_INITED;

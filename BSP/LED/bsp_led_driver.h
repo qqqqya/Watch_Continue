@@ -71,11 +71,11 @@ typedef enum{
 
 }led_proportion_t;
 
-typedef struct{
-    uint32_t period_ms;
-    uint32_t times;
-    led_proportion_t proportion;
-}led_event_t;
+// typedef struct{
+//     uint32_t period_ms;
+//     uint32_t times;
+//     led_proportion_t proportion;
+// }led_event_t;
 
 typedef struct{
 
