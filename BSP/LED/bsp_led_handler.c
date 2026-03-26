@@ -31,27 +31,149 @@
 #include "bsp_led_driver.h"
 #include "FreeRTOS.h"
 #include "queue.h"
- 
-
-
 /******************************** Declares ************************************/
-static led_handler_status_t __array_init__(bsp_led_driver_t *   arry[], 
-                                            uint32_t            size
-){
-    for(uint32_t i = 0; i < size; i++){
-        arry[i] = (bsp_led_driver_t *)INIT_PATTERN;   //初始化指向一个特殊值 地址
-    }
-    //TBD   mem check
-    return HANDLER_OK;
-}
 
- /*准备LED事件结构体     包含LED周期、次数、比例*/
+/*准备LED事件结构体     包含LED周期、次数、比例  索引*/
 typedef struct 
 {
         uint32_t                    period_ms             ;              //period ms
         uint32_t                    times                 ;               //times
         led_proportion_t            proportion;      //proportion 3:1 2:1 1:1
+        led_index_t                 led_index;      //led index
 }led_event_t;
+
+led_handler_status_t led_handler_blink(bsp_led_driver_t * self){
+#ifdef DEBUG
+        DEBUGPRINT("Start_Blink///////// \r\n");
+#endif // DEBUG
+        led_handler_status_t ret = HANDLER_OK;
+/**************** 1、检查目标是否被实例化 ***********************************/
+    if( NULL        ==  self   ||
+        NOT_INITED   ==  self->is_inited   )    //检查是否被实例化
+    {
+        #ifdef DEBUG
+    DEBUGPRINT("LED_ERROR_PARAMETER\r\n");
+        #endif  //debug
+        return LED_ERRORPARAMETER;
+    }
+
+/****************3、实现闪烁操作 ***********************************/
+    {//局部代码块
+        //通过对象中断内部数据转存 进行闪烁操作
+        uint32_t                    period_local    = self->blink_period_ms;
+        uint32_t                    times_local     = self->blink_times;
+        led_proportion_t          proportion_local  = self->proportion_on_off;
+        uint32_t                 time_off_ms;
+        switch(proportion_local){
+            case PROPORTIONN_1_3:
+                time_off_ms = period_local/ 4;
+                break;
+            case PROPORTIONN_1_2:
+                time_off_ms = period_local/ 3;
+                break;
+            case PROPORTIONN_1_1:
+                time_off_ms = period_local / 2;
+                break;
+            default:
+                break;
+        }
+
+        for(uint32_t i = 0; i < times_local; i++){
+            
+            for(uint32_t j = 0; j < period_local; j++){
+                self->p_os_delay_ms->pf_osdelay_ms(500);                
+                if(j < time_off_ms){
+                    self->p_led_operation->pf_bsp_led_off();
+                    // 结构体内部的函数指针指向函数才能调用
+#ifdef DEBUG
+                    DEBUGPRINT("LED_OFF\r\n");
+#endif  //debug
+                }
+                else{
+                        // self->p_os_delay_ms->pf_osdelay_ms(500);
+                    self->p_led_operation->pf_bsp_led_on();
+                    //这里的ledon已经指向具体的led_on_myown函数
+#ifdef DEBUG
+                    DEBUGPRINT("LED_ON\r\n");
+#endif  //debug
+                }
+            }
+        }
+    }
+
+    return ret;
+}
+
+led_handler_status_t __event_process(bsp_led_handler_t * self, led_event_t msg)
+{
+        led_handler_status_t ret = HANDLER_OK;
+        /*************0.检查目标是否实例化 ******************************/
+        /*************   has checked  *******************/        
+        
+        /*************1.检查传入参数合法 ******************************/
+        /*************   has checked  *******************/
+
+        /*************2.检查index 是否限幅正确 ******************************/
+        if(     MAX_LED_INSTANCES < msg.led_index ||
+                LED_NOT_INITIALIZED == msg.led_index 
+        )
+        {
+#ifdef DEBUG
+        DEBUGPRINT("HANDLER_ERRORPARAMETER\r\n");
+#endif  //debug
+            ret = HANDLER_ERRORPARAMETER;
+            return ret;
+        }
+        /*************3.检查index 是否被实例化（非初始化模式） ******************************/
+        if(LED_NOT_INITIALIZED == msg.led_index)
+        {
+#ifdef DEBUG
+        DEBUGPRINT("index_instance_ERROR\r\n");
+#endif  //debug
+            ret = HANDLER_ERRORPARAMETER;
+            return ret;
+        }
+        /*************4.检查index 指向的 leddriver 是否合法 ******************************/
+/*handler的 self->register_led_instances.led_instance_aarry[*led_index] = \
+        led_driver;挂载的是led_driver  */
+        if(INIT_PATTERN == self->register_led_instances.led_instance_aarry[msg.led_index])
+        {
+#ifdef DEBUG
+        DEBUGPRINT("HANDLER_ERRORRESOURCE at __event_process\r\n");
+#endif  //debug
+            ret = HANDLER_ERRORRESOURCE;
+            return ret;
+        }
+        
+
+/**************** 打印msg参数 ***********************************/
+        printf("led_period: %d\r\n", msg.period_ms);
+        printf("led_times: %d\r\n", msg.times);
+        printf("led_proportion: %d\r\n", msg.proportion);
+        printf("led_index: %d\r\n", msg.led_index);
+/**************** 转存数据 ***********************************/ //非严谨版本 直接赋值成员变量
+        self->register_led_instances.led_instance_aarry[msg.led_index]->blink_period_ms\
+                                                                        = msg.period_ms;
+        self->register_led_instances.led_instance_aarry[msg.led_index]->blink_times\
+                                                                        = msg.times;
+        self->register_led_instances.led_instance_aarry[msg.led_index]->proportion_on_off\
+                                                                        = msg.proportion;
+/********LED闪烁执行 ***************/
+        led_handler_blink(self->register_led_instances.led_instance_aarry[msg.led_index]);
+        return ret;
+}
+
+static led_handler_status_t __array_init__(bsp_led_driver_t *   arry[], 
+                                            uint32_t            size
+){
+    for(uint32_t i = 0; i < size; i++){
+        arry[i] = (bsp_led_driver_t *)INIT_PATTERN;   //初始化指向一个特殊值 地址
+    }                                                 //相当于给初值 i=0
+    //TBD   mem check
+    return HANDLER_OK;
+}
+
+
 led_handler_status_t handler_thread(void * arguments)
 {   
 	vTaskDelay(1000 );
@@ -82,10 +204,13 @@ led_handler_status_t handler_thread(void * arguments)
 /**************** 3、读取队列中的事件 处理事件  ***********************************/
 	ret = p_led_handler->p_os_queue_interface->pf_os_queue_get(
                                                         p_led_handler->queue_handler,
-                                                                                &msg,
-                                                                                   0);
+                                                                                &msg,//led_event_t
+                                                                                   0);//LED周期、次数、比例  索引
 	if(HANDLER_OK==ret){
 		printf("message received\r\n");
+                /*******************内部处理业务的函数******************** */
+                //处理事件
+                __event_process(p_led_handler, msg);
 	}
  
         }
@@ -122,11 +247,15 @@ led_handler_status_t led_register(
 /****************挂载对象       *******************************************/
         if((MAX_LED_INSTANCES-self->register_led_instances.led_instance_num)>0){
             //此时如果多线程调用 会触发数组越界  需要处理越界问题---solve  临界区
-            self->register_led_instances.led_instance_aarry[*led_index] = \
-                                                                            led_driver;
+            self->register_led_instances.led_instance_aarry\
+                                [self->register_led_instances.led_instance_num] = led_driver;
             *led_index = self->register_led_instances.led_instance_num;//
             //直接操作原来的变量  注册成功后  led_index 会增加1
             self->register_led_instances.led_instance_num++;
+
+            /* 
+            self->register_led_instances.led_instance_aarry[*led_index]=led_driver
+            printf("=================led_index: %d\r\n", *led_index);*/
         }
 #ifdef OS_SUPPORTING        
         self->p_os_critical->pf_os_critical_exit();//退出临界区  vPortExitCritical
@@ -185,15 +314,13 @@ static led_handler_status_t led_control(        bsp_led_handler_t * const    sel
 #ifdef DEBUG
         DEBUGPRINT("sending event to queue\r\n");
 #endif  //debug
-// #ifdef DEBUG
-//         printf("period_ms = %d, times = %d, proportion_blink = %d\r\n",period_ms,times,proportion_blink);
-// #endif  //debug
 /****************3、向LED队列中发送事件 ***********************************/
 /*instance event LED事件结构体     包含LED周期、次数、比例*/
         led_event_t led_event={
                 .period_ms=period_ms,
                 .times=times,
                 .proportion=proportion_blink,
+                .led_index=led_index,
         };
 
 //将led事件放入到队列中控制led行为

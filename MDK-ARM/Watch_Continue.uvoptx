@@ -150,18 +150,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>282</LineNumber>
+          <LineNumber>137</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134224734</Address>
+          <Address>134225714</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>../Core/Src/freertos.c</Filename>
+          <Filename>..\BSP\LED\bsp_led_handler.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../Core/Src/freertos.c\282</Expression>
+          <Expression>\\Watch_Continue\../BSP/LED/bsp_led_handler.c\137</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>131</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134225698</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>..\BSP\LED\bsp_led_handler.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Watch_Continue\../BSP/LED/bsp_led_handler.c\131</Expression>
         </Bp>
       </Breakpoint>
       <Tracepoint>

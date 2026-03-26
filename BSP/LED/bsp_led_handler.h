@@ -38,7 +38,7 @@
 #define OS_SUPPORTING   //这里都是全局宏定义      
 #define DEBUG       
 #define DEBUGPRINT(X)       printf(X)       //调试输出打印
-#define INIT_PATTERN       0xA6A6A6A6
+#define INIT_PATTERN       (bsp_led_driver_t *)0xA6A6A6A6       ///led实例  初始化模式
 // #define MAX_LED_INSTANCES       10
 
 

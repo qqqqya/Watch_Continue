@@ -165,7 +165,10 @@ led_status_t led_driver_init(   bsp_led_driver_t * const self          //led dri
                                     os delay函数
         将他们初始化的值指向具体的值--onoff--返回时间数--delay时长--
                                    */
-        self->p_led_operation->pf_bsp_led_off();
+        self->p_led_operation->pf_bsp_led_on();
+#ifdef DEBUG
+        DEBUGPRINT("Init_LED_ON\r\n");
+#endif  //debug
         uint32_t time_stamp = 0;
         self->p_timebase_ms->pf_get_tick_ms(&time_stamp);
         self->p_os_delay_ms->pf_osdelay_ms(500);

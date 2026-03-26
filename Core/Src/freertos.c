@@ -331,6 +331,8 @@ void Test2(){
 
 void Test3(void){
 ///系统集成工程师
+/********************************Handler layer******************************************** */
+
   led_handler_status_t ret_handler=HANDLER_OK;
   led_status_t ret_led=LED_OK;  	
 
@@ -359,7 +361,9 @@ void Test3(void){
   }
 
 ///APP工程师
+/********************************Handler layer******************************************** */
   led_index_t LED_index=LED_NOT_INITIALIZED;
+  //app 线程1
   ret_handler=handler_1.pf_led_register(&handler_1,
 										                    &led_1,
 										                    &LED_index);
@@ -368,11 +372,12 @@ void Test3(void){
   if(HANDLER_OK==ret_handler){
     printf("_register_finished\r\n");
   }
-
+  //app 线程2
   ret_handler=handler_1.pf_led_control(&handler_1, 4, 2, PROPORTIONN_1_1,LED_index);//10ms闪烁2 times    
   if(HANDLER_OK==ret_handler){
     printf("_control_OK\r\n");
   }
+  //到这里app  结束  app结束调用
   while(1);
 
 }
