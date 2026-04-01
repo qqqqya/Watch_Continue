@@ -29,7 +29,7 @@
 /******************************** includes ************************************/
  #include "bsp_led_driver.h"
 
-
+#ifndef OS_SUPPORTING
 /*根据h文件补充*/
 /******************************** Declares ************************************/
 static led_status_t led_blink(bsp_led_driver_t * const    self ){
@@ -91,9 +91,10 @@ static led_status_t led_blink(bsp_led_driver_t * const    self ){
 
     return ret;
 }
+#endif
 
 
-
+#ifndef OS_SUPPORTING
 /// @brief 实例化结构体内部的函数指针  指向这里控制led闪烁
 /// @param self 
 /// @param period_ms 
@@ -144,6 +145,8 @@ static led_status_t led_control(   bsp_led_driver_t * const    self,    //pointe
         ret = led_blink(self);
         return ret;
 }
+#endif
+
 
 
 //初始化-获取内部的接口
@@ -223,11 +226,9 @@ led_status_t led_driver_instance(   bsp_led_driver_t * const self,          //le
         self->p_led_operation = led_operation;
         self->p_timebase_ms   = timebase_ms;
         self->p_os_delay_ms   = os_delay_ms;
-        self->pf_led_control = led_control;//函数指针 指向led_control函数
+//        self->pf_led_control = led_control;//函数指针 指向led_control函数
 
-#ifndef OS_SUPPORTING
-    
-#endif //#ifndef OS_SUPPORTING
+
 /************4 、初始化目标变量     闪烁功能变量**********************/
 
        self->blink_period_ms    = 0;

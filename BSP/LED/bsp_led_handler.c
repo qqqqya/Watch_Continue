@@ -413,6 +413,7 @@ led_handler_status_t led_handler_instance(
                                                         0,      ////wait 外部去写   一般是normal
                                                 &(self->thread_handler)     //二级 当前线程的栈指针
                                         );///这个二级是因为要改变当前的任务的指针所以传二级  删除的时候只需要传入告知即可
+        printf("thread_handler = %p\r\n",self->thread_handler);
         if(ret != HANDLER_OK)
         {
 #ifdef DEBUG//创建线程失败打印
@@ -442,6 +443,8 @@ led_handler_status_t led_handler_instance(
         self->register_led_instances.led_instance_num = 0;  //index init=0
         ret = __array_init__(self->register_led_instances.led_instance_aarry,
                                 MAX_LED_INSTANCES);
+
+                                
         if(ret != HANDLER_OK)
         {
 #ifdef DEBUG
