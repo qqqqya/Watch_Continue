@@ -31,8 +31,9 @@
 /* USER CODE BEGIN Includes */
 
 #include "system_adaptation.h"
-
-
+#include "iic_hal.h"
+#include "bsp_aht21_driver.h"
+#include "delay.h"
 
 /* USER CODE END Includes */
 
@@ -45,6 +46,27 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+aht_status_t aht_critical_enter(void)
+{
+    vPortEnterCritical();
+}
+aht_status_t aht_critical_exit(void)
+{
+    vPortExitCritical();
+}
+iic_driver_instance_t p_iic_instance={
+  .pf_iic_init = IICInit,
+  .pf_iic_start = IICStart,
+  .pf_iic_stop = IICStop,
+  .pf_iic_waitack = IICWaitAck,
+  .pf_iic_sendbytes = IICSendByte,
+  .pf_iic_recevbytes = IICReceiveByte,
+  .pf_iic_waitnotack = IICSendNotAck,
+
+  .pf_enter_critical = aht_critical_enter,
+  .pf_exit_critical = aht_critical_exit,
+
+};
 
 /* USER CODE END PM */
 

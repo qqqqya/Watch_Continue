@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F411xE</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../BSP/LED;..\SYSTEM;..\Core\IIC;..\Core\Delay</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../BSP/LED;..\SYSTEM;..\Core\IIC;..\Core\Delay;..\BSP\AHT21</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1337,6 +1337,11 @@
               <FileName>bsp_led_handler.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\LED\bsp_led_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_aht21_driver.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\AHT21\bsp_aht21_driver.h</FilePath>
             </File>
           </Files>
         </Group>

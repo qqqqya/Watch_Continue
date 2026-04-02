@@ -26,7 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "iic_hal.h"
-#include "delay.h"
+// #include "delay.h"
 
 //禁用ARM半主机模式（核心！否则printf不生效）
 #pragma import(__use_no_semihosting)
@@ -51,8 +51,10 @@ FILE __stdout; // 现在可以正常定义了
 
 /* USER CODE END PD */
 
+
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+
 
 /* USER CODE END PM */
 
