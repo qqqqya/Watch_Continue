@@ -15,11 +15,11 @@ LR_IROM1 0x08000000 0x00080000  {    ; load region size_region
   }
 }
 
-LR_IROM2 0x08007000 0x00001000  {
-	ER_IROM2 0x08007000 0x00001000  {  ; load address = execution address
+;LR_IROM2 0x08007000 0x00001000  {
+;	ER_IROM2 0x08007000 0x00001000  {  ; load address = execution address
 		
-  }
-}
+;  }
+;}
 
 LR_IRAM2 0x08007000 0x00001000  {; load address 
 	ER_IRAM2 0x20019000 0x00002000   {  

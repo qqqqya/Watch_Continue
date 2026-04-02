@@ -22,8 +22,11 @@
 #include "usart.h"
 #include "gpio.h"
 
+
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "iic_hal.h"
+#include "delay.h"
 
 //禁用ARM半主机模式（核心！否则printf不生效）
 #pragma import(__use_no_semihosting)
@@ -34,6 +37,8 @@ struct __FILE {
 };
 
 FILE __stdout; // 现在可以正常定义了
+
+
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -100,17 +105,39 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
+	delay_init();
+	printf("hello\r\n");
+	  printf("hello world1 SystemCoreClock = [%d] \r\n",SystemCoreClock);
+  iic_bus_t AHT21_BUS={
+    .IIC_SCL_PORT=GPIOB,
+    .IIC_SCL_PIN=GPIO_PIN_14,
+    .IIC_SDA_PORT=GPIOB,
+    .IIC_SDA_PIN=GPIO_PIN_13
+};//(PB13(SDA)/PB14(SCL)引|脚
+  IICInit(&AHT21_BUS);
+  IICStart(&AHT21_BUS);
+  IICSendByte(&AHT21_BUS,0x70);
+  if(IICWaitAck(&AHT21_BUS))
+  {
+    printf("AHT21 no ack\r\n");
+  }
+  else
+  {
+    printf("AHT21 ack\r\n");
+  }
+  IICStop(&AHT21_BUS);
+
 
   /* USER CODE END 2 */
 
-  /* Init scheduler */
-  osKernelInitialize();
+  // /* Init scheduler */
+  // osKernelInitialize();
 
-  /* Call init function for freertos objects (in cmsis_os2.c) */
-  MX_FREERTOS_Init();
+  // /* Call init function for freertos objects (in cmsis_os2.c) */
+  // MX_FREERTOS_Init();
 
-  /* Start scheduler */
-  osKernelStart();
+  // /* Start scheduler */
+  // osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 
