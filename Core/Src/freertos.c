@@ -46,16 +46,17 @@
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-aht_status_t aht_critical_enter(void)
+aht_status_t iic_critical_enter(void)
 {
     vPortEnterCritical();
 }
-aht_status_t aht_critical_exit(void)
+aht_status_t iic_critical_exit(void)
 {
     vPortExitCritical();
 }
 iic_driver_instance_t p_iic_instance={
-  .pf_iic_init = IICInit,
+  .pf_iic_init = IICInit,     //iic_hal.h中的函数
+  .pf_iic_deinit = NULL,     //反初始化函数 目前没有实现
   .pf_iic_start = IICStart,
   .pf_iic_stop = IICStop,
   .pf_iic_waitack = IICWaitAck,
@@ -63,8 +64,8 @@ iic_driver_instance_t p_iic_instance={
   .pf_iic_recevbytes = IICReceiveByte,
   .pf_iic_waitnotack = IICSendNotAck,
 
-  .pf_enter_critical = aht_critical_enter,
-  .pf_exit_critical = aht_critical_exit,
+  .pf_enter_critical = iic_critical_enter,
+  .pf_exit_critical = iic_critical_exit,
 
 };
 

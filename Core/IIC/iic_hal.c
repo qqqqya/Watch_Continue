@@ -131,7 +131,7 @@ unsigned char IICWaitAck(iic_bus_t *bus)
     {
         cErrTime--;
 				delay_us(1);
-        if (0 == cErrTime)
+        if (0 == cErrTime)//超时  high
         {
             SDA_Output_Mode(bus);
             IICStop(bus);
@@ -150,10 +150,10 @@ unsigned char IICWaitAck(iic_bus_t *bus)
   * @retval None
   */
 void IICSendAck(iic_bus_t *bus)
-{
+{ //默认之前都是scl拉低-0 因为其他步骤最后的都是拉低scl
     SDA_Output(bus,0);
 		delay_us(1);
-    SCL_Output(bus,1);
+    SCL_Output(bus,1);//高电平读取
 		delay_us(1);
     SCL_Output(bus,0);
 		delay_us(1);
@@ -210,8 +210,8 @@ unsigned char IICReceiveByte(iic_bus_t *bus)
     unsigned char cR_Byte = 0;
     SDA_Input_Mode(bus);
     while (i--)
-    {
-        cR_Byte += cR_Byte;
+    {   //相当于*2  二进制层面左移一位
+        cR_Byte += cR_Byte; //左移一位 然后或上sda
         SCL_Output(bus,0);
 				delay_us(2);
         SCL_Output(bus,1);
@@ -227,8 +227,8 @@ uint8_t IIC_Write_One_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t dat
 {				   	  	    																 
   IICStart(bus);  
 	
-	IICSendByte(bus,daddr<<1);	    
-	if(IICWaitAck(bus))	//等待应答
+	IICSendByte(bus,daddr<<1|0);//发送设备地址+写命令 0	    
+	if(IICWaitAck(bus))	//等待应答  --设备地址
 	{
 		IICStop(bus);		 
 		return 1;		
@@ -255,8 +255,8 @@ uint8_t IIC_Write_Multi_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t l
 	}
 	IICSendByte(bus,reg);
 	IICWaitAck(bus);	
-	for(i=0;i<length;i++)
-	{
+	for(i=0;i<length;i++) //写多个数据 区别就是多了一个循环 
+	{                     //每写一个字节都要等待ack
 		IICSendByte(bus,buff[i]);     						   
 		IICWaitAck(bus); 
 	}		    	   
@@ -303,7 +303,7 @@ uint8_t IIC_Read_Multi_Byte(iic_bus_t *bus, uint8_t daddr, uint8_t reg, uint8_t 
 	for(i=0;i<length;i++)
 	{
 		buff[i] = IICReceiveByte(bus);
-		if(i<length-1)    //这里好像是每个字节都应该发送ack
+		if(i<length-1)    //这里好像是只要是read  每个字节都应该发送ack
 		{IICSendAck(bus);}
 	}
 	IICSendNotAck(bus);

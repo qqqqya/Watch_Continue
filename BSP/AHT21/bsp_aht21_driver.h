@@ -35,6 +35,11 @@
 
 //******************************* Defines ***********************************//
 #define OS_SUPPORTING
+typedef enum
+{
+	AHT_IS_INITED            = 0,      /* Operation completed successfully         */
+	AHT_NOT_INITED          = 1,      /* General runtime error                    */
+} aht_handler_init_t; 
 
 typedef enum
 {
@@ -94,7 +99,7 @@ typedef struct{
             里面包含一些函数指针 这些函数指针指向实际的函数实现
         
         */
-
+/*******aht21接口   实例结构体  **********/
 typedef struct bsp_aht21_driver
 {
     //外部接口

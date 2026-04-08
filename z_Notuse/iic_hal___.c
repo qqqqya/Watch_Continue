@@ -63,7 +63,6 @@ void SDA_Output(iic_bus_t* bus,uint16_t val){//write SDA pin value.
 uint16_t SDA_Input(iic_bus_t* bus){
     return (HAL_GPIO_ReadPin(bus->SDA_PORT,bus->SDA_PIN)==GPIO_PIN_SET)?1:0;
 }
-
 void SCL_Output(iic_bus_t* bus,uint16_t val){   
     HAL_GPIO_WritePin(bus->SCL_PORT,bus->SCL_PIN,   val==1?GPIO_PIN_SET:GPIO_PIN_RESET);
 }
