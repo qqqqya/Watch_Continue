@@ -8,7 +8,7 @@
  * @par dependencies 
  * - stdio.h
  * - stdint.h
- * 
+ * - aht21_reg.h
 #include "stdint.h"
 #include "stm32f4xx_hal.h"
 #include "queue.h"
@@ -32,9 +32,14 @@
 
 #include "stdio.h"
 #include "stdint.h"
+#include "aht21_reg.h"
+
 
 //******************************* Defines ***********************************//
 #define OS_SUPPORTING
+#define DEBUG
+#define AHTDEBUGPRINT(X)       printf(X)       //调试输出打印
+
 typedef enum
 {
 	AHT_IS_INITED            = 0,      /* Operation completed successfully         */
@@ -59,18 +64,24 @@ typedef enum
 //******1.iic 实例结构体**********//
 
 typedef struct{
-    int8_t        (*pf_iic_init       ) (void);
-    int8_t        (*pf_iic_deinit     ) (void); //反初始化
-    int8_t        (*pf_iic_start      ) (void);
-    int8_t        (*pf_iic_stop       ) (void);
-    int8_t        (*pf_iic_waitack    ) (void);
-    int8_t        (*pf_iic_waitnotack ) (void);
-    int8_t        (*pf_iic_sendbytes  ) (uint8_t address,
-                                         uint8_t  *pdata,
-                                         uint8_t   size);
-    int8_t        (*pf_iic_recevbytes ) (uint8_t address,
-                                         uint8_t  *pdata,
-                                         uint8_t   size);
+    int8_t        (*pf_iic_init       ) (void*);
+    int8_t        (*pf_iic_deinit     ) (void*); //反初始化
+    int8_t        (*pf_iic_start      ) (void*);
+    int8_t        (*pf_iic_stop       ) (void*);
+    int8_t        (*pf_iic_waitack    ) (void*);
+    int8_t        (*pf_iic_send_ack   ) (void*);
+    int8_t        (*pf_iic_send_notack) (void*);
+    int8_t        (*pf_iic_sendbytes  ) (void*,       //iic bus instance iic实例-包括pin port等信息
+                                         uint8_t data);
+    int8_t        (*pf_iic_recevbytes ) (void*,   
+                                         uint8_t * data);//这个地方确实是 写driver的人不管iic怎么写到 
+                                                            //都会有自己的思想直接用地址传回来返回值
+
+                                                            
+    int8_t        (*pf_iic_sendmulti_bytes  ) (void*,   //单个字节传val  多个字节传数组+长度
+                                               uint8_t  *pdata,uint8_t   size    );//                             
+    int8_t        (*pf_iic_recevmulti_bytes ) (void*,   
+                                               uint8_t  *pdata,uint8_t   size    );//                             
     int8_t         (*pf_enter_critical) (void);                            
     int8_t         (*pf_exit_critical) (void);                            
 }iic_driver_instance_t;
@@ -78,14 +89,14 @@ typedef struct{
 //from core layer(hal库)
 //******2.timebase 实例结构体**********//
 typedef struct{
-    uint32_t    (*pf_timebase_gettickms) (void);
-}timebases_t;
+    uint32_t    (*pf_timebase_gettickms) (uint32_t *ptick);
+}timebases_ms_t;
 //from OS layer
 
 //******3. 实例结构体**********//
 #ifdef OS_SUPPORTING
 typedef struct{
-    void        (*rtos_yield) (uint32_t );  //os delay ms
+    void        (*rtos_yield) (const uint32_t );  //os delay ms
 }yield_interface_t;
 
 
@@ -104,7 +115,7 @@ typedef struct bsp_aht21_driver
 {
     //外部接口
     iic_driver_instance_t *p_iic_instance; //IIC实例指针
-    timebases_t *p_timebase_ms; //timebase实例指针
+    timebases_ms_t *p_timebase_ms; //timebase实例指针
                             //中断保护
 
     yield_interface_t   *p_yield_interface;                     //操作系统让出CPU接口
@@ -115,7 +126,7 @@ typedef struct bsp_aht21_driver
     aht_status_t (*pf_instance)(    //实例化函数的指针
                                     void * const self,
                                     iic_driver_instance_t  * const p_iic_instance,
-                                    timebases_t  *const p_timebase_ms,
+                                    timebases_ms_t  *const p_timebase_ms,
                                     yield_interface_t   * const p_yield_interface
 										); 
     aht_status_t (*pf_init      )(void * const self);         //初始化函数指针
@@ -136,7 +147,7 @@ typedef struct bsp_aht21_driver
 aht_status_t aht21_driver_instance(
                                     bsp_aht21_driver_t * const self,
                                     iic_driver_instance_t  * const p_iic_instance,
-                                    timebases_t  *const p_timebase_ms,
+                                    timebases_ms_t  *const p_timebase_ms,
                                     yield_interface_t   * const p_yield_interface
 
 );

@@ -122,9 +122,7 @@ static aht_status_t aht21_deinit( bsp_aht21_driver_t *  p_aht21_instance){
     return AHT_OK;
 
 }
-float g_temp = 0;
-// float g_temp = 0.0f;
-
+float g_temp = 0.0f;
 static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, float * const humi){
     if(AHT21_NOT_INITED == g_inited)  
     {
@@ -147,36 +145,33 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);        //----------end of command transmission
 
     p_aht21_instance->p_yield_interface->rtos_yield(AHT21_MEASUREMENT_TIME_MS);  //等待测量完成80ms
-        /******如果要读状态7个全部读出
-         *  但是其实也不用  for里面也读了
-         */
-    p_aht21_instance->p_iic_instance->pf_iic_start(NULL);       //-----------start of data reception
-    p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);  //发送读数据reg 0x71
-    //这里还得加 waitack   -------------------------元凶在这里********************************************
-    p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);
+
+    // 连续读取7个字节的传感器数据
+    p_aht21_instance->p_iic_instance->pf_iic_start(NULL);
+    p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);  // 发送读数据reg 0x71
+    p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL); // 等待设备ACK同意读取
     
     for(i=0;i<sizeof(recv);i++)
     {
-        p_aht21_instance->p_iic_instance->pf_iic_recevbytes(NULL,&recv[i]);  //读取测量结果
-        if(i==0)        //第一个字节是状态寄存器 需要检查是否测量完成
+        p_aht21_instance->p_iic_instance->pf_iic_recevbytes(NULL,&recv[i]);  // 读取结果字节
+        if(i==0)        // 第一个字节是状态寄存器，需要检查是否测量完成
         {
-            if((recv[0] & 0x80) != 0)  //检查测量完成标志位
+            if((recv[0] & 0x80) != 0)  // 检查测量完成标志位 (0:完成, 1:未完成)
             {
-                /**加iic  notack+ stop */
-                return AHT_ERROR;  //测量未完成
+                p_aht21_instance->p_iic_instance->pf_iic_send_notack(NULL);
+                p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);
+                return AHT_ERROR;  // 测量未完成
             }
-            /**************************** */
-            // xxxxxxxxxxxxxxxx其实这个都无所谓xxxxxxxxxxxx p_aht21_instance->p_yield_interface->rtos_yield(80);  //测量完成后等待80ms
-            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  //空闲确认就  发送ack
-            
+            // 此时绝对不能停顿(yield)，继续发ACK读剩余数据
+            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  // 发送ack，继续读
         }
-        else if(i==sizeof(recv)-1)  //最后一个CRC 字节发送不ack
+        else if(i==sizeof(recv)-1)  // 最后一个CRC字节接收后，直接发NACK告诉从机停止发送
         {
             p_aht21_instance->p_iic_instance->pf_iic_send_notack(NULL);  
         }
-        else        //五个数据字节
+        else        // 中间的数据字节，发送ACK
         {
-            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  //发送ack
+            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  // 发送ack
         }
     }
     p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);        //end of data reception
@@ -189,13 +184,9 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     uint32_t temp_data=     ((uint32_t)( recv[3]&0x0f) <<  (16))   | 
                             ((uint32_t)recv[4]        <<  (8 ))   |   
                             (recv[5]             );  //温度数据 20bit
-    // *humi = (humi_data * 1000) >> 20;  //湿度百分比 *10  
-    // *humi /= 10;                        // 保留一位小数 /10
-    // g_temp = ((temp_data * 2000) >> 20) - 500;  
-    // g_temp /= 10;
-
     *humi = ((float)humi_data * 100.0f) / 1048576.0f;  // 直接使用浮点数计算，保留全部精度  
     g_temp = ((float)temp_data * 200.0f) / 1048576.0f - 50.0f;  // 利用浮点计算避免小数值时uint32下溢
+    
     return AHT_OK;
 }
 
@@ -206,7 +197,7 @@ static aht_status_t aht21_read_temp(bsp_aht21_driver_t *  p_aht21_instance, floa
     }
     // log_d("aht21_read_temp");
     printf("aht21_read_temp\r\n");
-    *temp = (float)g_temp;
+    *temp = g_temp;
 
     return AHT_OK;
 }

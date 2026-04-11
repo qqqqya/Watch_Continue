@@ -35,40 +35,117 @@
 #include "bsp_aht21_driver.h"
 #include "delay.h"
 
+#include "elog.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 
+/* USER CODE END PTD */
 
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-aht_status_t iic_critical_enter(void)
+
+iic_bus_t iic_instance={          //iic总线实例
+      .IIC_SCL_PORT=GPIOB,
+    .IIC_SCL_PIN=GPIO_PIN_14,
+    .IIC_SDA_PORT=GPIOB,
+    .IIC_SDA_PIN=GPIO_PIN_13
+};
+
+int8_t        my_iic_init        (void * bus){
+    IICInit(&iic_instance);
+    return AHT_OK;
+}
+int8_t        my_iic_start       (void * bus){
+    IICStart(&iic_instance);
+    return AHT_OK;
+}
+
+int8_t        my_iic_stop      (void * bus){
+    IICStop(&iic_instance);
+    return AHT_OK;
+}
+int8_t        my_iic_waitack   (void * bus){
+    IICWaitAck(&iic_instance);
+    return AHT_OK;
+}
+int8_t        my_iic_sendack   (void * bus){
+    IICSendAck(&iic_instance);
+    return AHT_OK;
+}
+int8_t        my_iic_sendnotack   (void * bus){
+    IICSendNotAck(&iic_instance);
+    return AHT_OK;
+}
+int8_t        my_iic_sendbyte   (void * bus,uint8_t data){
+    IICSendByte(&iic_instance,data);
+    return AHT_OK;
+}
+int8_t        my_iic_recevbyte       (void * bus,uint8_t * data){
+     *data = IICReceiveByte(&iic_instance);
+    return AHT_OK;
+}
+/*****************多个字节暂时不用看后续教�?***************************/
+int8_t        my_iic_send_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
+    IIC_Write_Multi_Byte(&iic_instance,NULL,NULL,size,pdata); //pdata是地�?�?般是个数�?
+    return AHT_OK;                    //dev addr + reg addr + size + pdata
+}//iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t length,uint8_t buff[]
+int8_t        my_iic_rece_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
+    IIC_Read_Multi_Byte(&iic_instance,NULL,NULL,size,pdata);
+    return AHT_OK;                    //dev addr + reg addr + size + pdata      
+}
+int8_t my_iic_critical_enter(void)
 {
     vPortEnterCritical();
 }
-aht_status_t iic_critical_exit(void)
+int8_t my_iic_critical_exit(void)
 {
     vPortExitCritical();
 }
-iic_driver_instance_t p_iic_instance={
-  .pf_iic_init = IICInit,     //iic_hal.h中的函数
-  .pf_iic_deinit = NULL,     //反初始化函数 目前没有实现
-  .pf_iic_start = IICStart,
-  .pf_iic_stop = IICStop,
-  .pf_iic_waitack = IICWaitAck,
-  .pf_iic_sendbytes = IICSendByte,
-  .pf_iic_recevbytes = IICReceiveByte,
-  .pf_iic_waitnotack = IICSendNotAck,
+aht_status_t get_tick_ms(uint32_t *ptick)
+{
+  //  *ptick = osKernelGetTickCount();
+     *ptick = HAL_GetTick();
+	return AHT_OK;
+}
+aht_status_t delay_own_ms(uint32_t ms)
+{
+//  vTaskDelay(ms);
+	delay_ms(ms);
+	return AHT_OK;
+}
+iic_driver_instance_t aht_iic_func_instance={
+  .pf_iic_init              = my_iic_init,     //iic_hal.h中的函数
+  .pf_iic_deinit            = NULL,     //反初始化函数 目前没有实现
+  .pf_iic_start             = my_iic_start,
+  .pf_iic_stop              = my_iic_stop,
+  .pf_iic_waitack           = my_iic_waitack,
+  .pf_iic_send_ack          = my_iic_sendack,
+  .pf_iic_send_notack       = my_iic_sendnotack,
 
-  .pf_enter_critical = iic_critical_enter,
-  .pf_exit_critical = iic_critical_exit,
+  .pf_iic_sendbytes         = my_iic_sendbyte,
+  .pf_iic_recevbytes        = my_iic_recevbyte,
+  .pf_iic_sendmulti_bytes   = my_iic_send_multibyte,//iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t length,uint8_t buff[]
+  .pf_iic_recevmulti_bytes  = my_iic_rece_multibyte,
+  
+
+  .pf_enter_critical        = my_iic_critical_enter,
+  .pf_exit_critical         = my_iic_critical_exit,
 
 };
 
+yield_interface_t yield_interface={
+    .rtos_yield = delay_own_ms,
+};
+timebases_ms_t aht21_timebase_ms={
+    .pf_timebase_gettickms =get_tick_ms,
+};
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -146,17 +223,35 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-	printf("hello win\r\n");     
+  printf("hello win\r\n");  
+  bsp_aht21_driver_t aht21_instance;  
+  aht21_driver_instance(&aht21_instance,      //初始化里里面只有init
+                      &aht_iic_func_instance, 
+                      &aht21_timebase_ms, 
+                      &yield_interface
+                    );
+  printf("aht21_instance = %p\r\n",&aht21_instance);
+  
+  /************这里是后续handler 业务层做的 现在这里只是单元测试*/
+  float temp;
+  float humi;
 
-  system_init_resources();
-  Test3();
-  printf("nihao win2222\r\n");     
+
+  
+//	printf("hello win\r\n");     
+//  system_init_resources();
+//  Test3();
+//  printf("nihao win2222\r\n");     
 
 	for(;;)   
-	{	 
+	{	   aht21_instance.pf_read_humi(&aht21_instance,&humi);  //
+  aht21_instance.pf_read_temp(&aht21_instance,&temp);  //
+  printf("humi = %f\r\n",humi);
+  printf("humi end\r\n");
+  printf("temp = %f\r\n",temp);
 	//	HAL_GPIO_TogglePin(LED_Test_GPIO_Port, LED_Test_Pin);
 	//	HAL_Delay(500);
-		osDelay(1);
+		osDelay(1000);
 	}
   /* USER CODE END StartDefaultTask */
 }

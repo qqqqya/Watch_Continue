@@ -19,9 +19,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
-
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -33,10 +33,10 @@
 void _sys_exit(int x) { x = x; }
 struct __FILE {
     int handle;
-    // 不需要额外成员，最小定义即可补全struct __FILE定义，让FILE变成完整类型
+    // 不需要额外成员，�?小定义即可补全struct __FILE定义，让FILE变成完整类型
 };
 
-FILE __stdout; // 现在可以正常定义了
+FILE __stdout; // 现在可以正常定义�?
 
 
 /* USER CODE END Includes */
@@ -50,7 +50,6 @@ FILE __stdout; // 现在可以正常定义了
 /* USER CODE BEGIN PD */
 
 /* USER CODE END PD */
-
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
@@ -106,40 +105,41 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+//  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
-	delay_init();
-	printf("hello\r\n");
-	  printf("hello world1 SystemCoreClock = [%d] \r\n",SystemCoreClock);
-  iic_bus_t AHT21_BUS={
-    .IIC_SCL_PORT=GPIOB,
-    .IIC_SCL_PIN=GPIO_PIN_14,
-    .IIC_SDA_PORT=GPIOB,
-    .IIC_SDA_PIN=GPIO_PIN_13
-};//(PB13(SDA)/PB14(SCL)引|脚
-  IICInit(&AHT21_BUS);
-  IICStart(&AHT21_BUS);
-  IICSendByte(&AHT21_BUS,0x70);
-  if(IICWaitAck(&AHT21_BUS))
-  {
-    printf("AHT21 no ack\r\n");
-  }
-  else
-  {
-    printf("AHT21 ack\r\n");
-  }
-  IICStop(&AHT21_BUS);
+// 	delay_init();
+// 	printf("hello\r\n");
+// 	  printf("hello world1 SystemCoreClock = [%d] \r\n",SystemCoreClock);
+//   iic_bus_t AHT21_BUS={
+//     .IIC_SCL_PORT=GPIOB,
+//     .IIC_SCL_PIN=GPIO_PIN_14,
+//     .IIC_SDA_PORT=GPIOB,
+//     .IIC_SDA_PIN=GPIO_PIN_13
+// };//(PB13(SDA)/PB14(SCL)引|�?
+//   IICInit(&AHT21_BUS);
+//   IICStart(&AHT21_BUS);
+//   IICSendByte(&AHT21_BUS,0x70);
+//   if(IICWaitAck(&AHT21_BUS))
+//   {
+//     printf("AHT21 no ack\r\n");
+//   }
+//   else
+//   {
+//     printf("AHT21 ack\r\n");
+//   }
+//   IICStop(&AHT21_BUS);
 
 
   /* USER CODE END 2 */
 
-  // /* Init scheduler */
-  // osKernelInitialize();
+  /* Init scheduler */
+  osKernelInitialize();
 
-  // /* Call init function for freertos objects (in cmsis_os2.c) */
-  // MX_FREERTOS_Init();
+  /* Call init function for freertos objects (in cmsis_os2.c) */
+  MX_FREERTOS_Init();
 
-  // /* Start scheduler */
-  // osKernelStart();
+  /* Start scheduler */
+  osKernelStart();
 
   /* We should never get here as control is now taken by the scheduler */
 

@@ -123,8 +123,6 @@ static aht_status_t aht21_deinit( bsp_aht21_driver_t *  p_aht21_instance){
 
 }
 float g_temp = 0;
-// float g_temp = 0.0f;
-
 static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, float * const humi){
     if(AHT21_NOT_INITED == g_inited)  
     {
@@ -152,8 +150,8 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
          */
     p_aht21_instance->p_iic_instance->pf_iic_start(NULL);       //-----------start of data reception
     p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);  //发送读数据reg 0x71
-    //这里还得加 waitack   -------------------------元凶在这里********************************************
-    p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);
+    //这里还得加 waitack
+    // p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);
     
     for(i=0;i<sizeof(recv);i++)
     {
@@ -166,7 +164,7 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
                 return AHT_ERROR;  //测量未完成
             }
             /**************************** */
-            // xxxxxxxxxxxxxxxx其实这个都无所谓xxxxxxxxxxxx p_aht21_instance->p_yield_interface->rtos_yield(80);  //测量完成后等待80ms
+            // xxxxxxxxxxxxxxxxxxxxxxxxxxxx p_aht21_instance->p_yield_interface->rtos_yield(80);  //测量完成后等待80ms
             p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  //空闲确认就  发送ack
             
         }
@@ -189,13 +187,11 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     uint32_t temp_data=     ((uint32_t)( recv[3]&0x0f) <<  (16))   | 
                             ((uint32_t)recv[4]        <<  (8 ))   |   
                             (recv[5]             );  //温度数据 20bit
-    // *humi = (humi_data * 1000) >> 20;  //湿度百分比 *10  
-    // *humi /= 10;                        // 保留一位小数 /10
-    // g_temp = ((temp_data * 2000) >> 20) - 500;  
-    // g_temp /= 10;
-
-    *humi = ((float)humi_data * 100.0f) / 1048576.0f;  // 直接使用浮点数计算，保留全部精度  
-    g_temp = ((float)temp_data * 200.0f) / 1048576.0f - 50.0f;  // 利用浮点计算避免小数值时uint32下溢
+    *humi = (humi_data * 1000) >> 20;  //湿度百分比 *10  
+    *humi /= 10;                        // 保留一位小数 /10
+    g_temp = ((temp_data * 2000) >> 20) - 500;  
+    g_temp /= 10;
+    
     return AHT_OK;
 }
 

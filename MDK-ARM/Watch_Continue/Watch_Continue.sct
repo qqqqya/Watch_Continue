@@ -21,9 +21,9 @@ LR_IROM1 0x08000000 0x00080000  {    ; load region size_region
 ;  }
 ;}
 
-LR_IRAM2 0x08007000 0x00001000  {; load address 
-	ER_IRAM2 0x20019000 0x00002000   {  
-		*.o(BSP_target)
+;LR_IRAM2 0x08007000 0x00001000  {; load address 
+	;ER_IRAM2 0x20019000 0x00002000   {  
+		;*.o(BSP_target)
 
-  }
-}
+  ;}
+;}

@@ -17,10 +17,11 @@ void IICStop(iic_bus_t *bus);
 unsigned char IICWaitAck(iic_bus_t *bus);
 void IICSendAck(iic_bus_t *bus);
 void IICSendNotAck(iic_bus_t *bus);
-void IICSendByte(iic_bus_t *bus, unsigned char cSendByte);
+void IICSendByte(iic_bus_t *bus, unsigned char cSendByte);	
 unsigned char IICReceiveByte(iic_bus_t *bus);
 void IICInit(iic_bus_t *bus);
-
+//发送一个字节--直接传val
+//多个字节--传数组+长度--就是传的地址
 uint8_t IIC_Write_One_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t data);
 uint8_t IIC_Write_Multi_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t length,uint8_t buff[]);
 /**

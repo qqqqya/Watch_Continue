@@ -320,7 +320,8 @@ void IICInit(iic_bus_t *bus)
 		//bus->CLK_ENABLE();
 		
     GPIO_InitStructure.Pin = bus->IIC_SDA_PIN ;
-    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    //GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_OD;
+     GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStructure.Pull = GPIO_PULLUP;
     GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(bus->IIC_SDA_PORT, &GPIO_InitStructure);
