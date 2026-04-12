@@ -43,6 +43,7 @@
 #define AHT21_CRC8_POLYNOMIAL     0x31           // CRC-8 polynomial
 #define AHT21_CRC8_INITIAL        0xFF           // CRC-8 initial value
 
+#define AHT21_IIC_inst      p_aht21_instance->p_iic_instance
 /******************************** Declares ************************************/
 int8_t g_inited =   AHT21_NOT_INITED;  //全局变量 记录是否实例化过了
 int8_t g_dev_id =   0;                  // 记录设备ID
@@ -57,13 +58,13 @@ static aht_status_t __read_id(bsp_aht21_driver_t *  p_aht21_instance){
         return AHT_ERRORRESOURCE;  //已经初始化过了
     }
 
-    p_aht21_instance->p_iic_instance->pf_iic_start(NULL);  
-    p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);//send 0x71
-    if(AHT_OK  != p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL))       return AHT_ERROR;  //等待ack失败
-	p_aht21_instance->p_iic_instance->pf_iic_recevbytes(NULL,&recv);  //读取device id 存入全局变量
+    AHT21_IIC_inst->pf_iic_start(NULL);  
+    AHT21_IIC_inst->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);//send 0x71
+    if(AHT_OK  != AHT21_IIC_inst->pf_iic_waitack(NULL))       return AHT_ERROR;  //等待ack失败
+	AHT21_IIC_inst->pf_iic_recevbytes(NULL,&recv);  //读取device id 存入全局变量
 	// recv=IICReceiveByte(&iic_instance);
-    p_aht21_instance->p_iic_instance->pf_iic_send_notack(NULL);//IICSendNotAck(&AHT_bus);
-    p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);
+//     p_aht21_instance->p_iic_instance->pf_iic_send_notack(NULL);//IICSendNotAck(&AHT_bus);
+//    p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);
     if((recv & AHT21_ID) != AHT21_ID)  //判断device id是否正确
     {   //检查AHT21传感器 id
         return AHT_ERROR;  //device id错误
@@ -94,18 +95,18 @@ static aht_status_t aht21_init( bsp_aht21_driver_t *  p_aht21_instance){
     if (NULL == p_aht21_instance) {
         return AHT_ERRORPARAMETER;
     }
-    if (NULL == p_aht21_instance->p_iic_instance->pf_iic_init ||
-        NULL == p_aht21_instance->p_iic_instance                    ) {
+    if (NULL == AHT21_IIC_inst->pf_iic_init ||
+        NULL == AHT21_IIC_inst                    ) {
         printf("IIC instance is NULL\r\n");
     }
     printf("aht21 init start\r\n");
    p_aht21_instance->p_yield_interface->rtos_yield(200);       //等待200ms 让传感器上电稳定
 	
-    p_aht21_instance->p_iic_instance->pf_iic_init(NULL);  //调用iic实例的初始化函数
+    AHT21_IIC_inst->pf_iic_init(NULL);  //调用iic实例的初始化函数
     // delay_ms(40);
     //
-    printf("aht21 IIC instance inited\r\n");
     ret=__read_id(p_aht21_instance); 
+    printf("aht21 IIC instance inited\r\n");
     if(ret != AHT_OK)
     {
         printf("aht21 read id failed\r\n");
@@ -124,7 +125,6 @@ static aht_status_t aht21_deinit( bsp_aht21_driver_t *  p_aht21_instance){
 }
 float g_temp = 0;
 // float g_temp = 0.0f;
-
 static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, float * const humi){
     if(AHT21_NOT_INITED == g_inited)  
     {
@@ -136,28 +136,28 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     uint8_t recv[7]={0};
     int i=0;
 
-    p_aht21_instance->p_iic_instance->pf_iic_start(NULL);
-    p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_WRITE_DATA_REG);  //发送写数据reg 0x70
-    p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);
+    AHT21_IIC_inst->pf_iic_start(NULL);
+    AHT21_IIC_inst->pf_iic_sendbytes(NULL,AHT21_WRITE_DATA_REG);  //发送写数据reg 0x70
+    AHT21_IIC_inst->pf_iic_waitack(NULL);
     for(i=0;i<sizeof(aht21_cmd);i++)
     {
-        p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,aht21_cmd[i]);  //发送测量指令
-        p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);  //等待ack失败
+        AHT21_IIC_inst->pf_iic_sendbytes(NULL,aht21_cmd[i]);  //发送测量指令
+        AHT21_IIC_inst->pf_iic_waitack(NULL);  //等待ack失败
     }
-    p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);        //----------end of command transmission
+    AHT21_IIC_inst->pf_iic_stop(NULL);        //----------end of command transmission
 
     p_aht21_instance->p_yield_interface->rtos_yield(AHT21_MEASUREMENT_TIME_MS);  //等待测量完成80ms
         /******如果要读状态7个全部读出
          *  但是其实也不用  for里面也读了
          */
-    p_aht21_instance->p_iic_instance->pf_iic_start(NULL);       //-----------start of data reception
-    p_aht21_instance->p_iic_instance->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);  //发送读数据reg 0x71
+    AHT21_IIC_inst->pf_iic_start(NULL);       //-----------start of data reception
+    AHT21_IIC_inst->pf_iic_sendbytes(NULL,AHT21_READ_DATA_REG);  //发送读数据reg 0x71
     //这里还得加 waitack   -------------------------元凶在这里********************************************
-    p_aht21_instance->p_iic_instance->pf_iic_waitack(NULL);
+    AHT21_IIC_inst->pf_iic_waitack(NULL);
     
     for(i=0;i<sizeof(recv);i++)
     {
-        p_aht21_instance->p_iic_instance->pf_iic_recevbytes(NULL,&recv[i]);  //读取测量结果
+        AHT21_IIC_inst->pf_iic_recevbytes(NULL,&recv[i]);  //读取测量结果
         if(i==0)        //第一个字节是状态寄存器 需要检查是否测量完成
         {
             if((recv[0] & 0x80) != 0)  //检查测量完成标志位
@@ -167,19 +167,19 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
             }
             /**************************** */
             // xxxxxxxxxxxxxxxx其实这个都无所谓xxxxxxxxxxxx p_aht21_instance->p_yield_interface->rtos_yield(80);  //测量完成后等待80ms
-            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  //空闲确认就  发送ack
+            AHT21_IIC_inst->pf_iic_send_ack(NULL);  //空闲确认就  发送ack
             
         }
         else if(i==sizeof(recv)-1)  //最后一个CRC 字节发送不ack
         {
-            p_aht21_instance->p_iic_instance->pf_iic_send_notack(NULL);  
+            AHT21_IIC_inst->pf_iic_send_notack(NULL);  
         }
         else        //五个数据字节
         {
-            p_aht21_instance->p_iic_instance->pf_iic_send_ack(NULL);  //发送ack
+            AHT21_IIC_inst->pf_iic_send_ack(NULL);  //发送ack
         }
     }
-    p_aht21_instance->p_iic_instance->pf_iic_stop(NULL);        //end of data reception
+    AHT21_IIC_inst->pf_iic_stop(NULL);        //end of data reception
 
     //解析测量结果
     uint32_t humi_data=     ( (uint32_t)recv[1]        <<  (12))   | 
@@ -193,7 +193,7 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     // *humi /= 10;                        // 保留一位小数 /10
     // g_temp = ((temp_data * 2000) >> 20) - 500;  
     // g_temp /= 10;
-
+                        /*保留全部精度 消耗资源大*/
     *humi = ((float)humi_data * 100.0f) / 1048576.0f;  // 直接使用浮点数计算，保留全部精度  
     g_temp = ((float)temp_data * 200.0f) / 1048576.0f - 50.0f;  // 利用浮点计算避免小数值时uint32下溢
     return AHT_OK;
@@ -204,7 +204,7 @@ static aht_status_t aht21_read_temp(bsp_aht21_driver_t *  p_aht21_instance, floa
     {
         return AHT_ERRORRESOURCE;  //未初始化化
     }
-    // log_d("aht21_read_temp");
+    // 先humi 在 temp temp直接是gval
     printf("aht21_read_temp\r\n");
     *temp = (float)g_temp;
 
@@ -248,7 +248,7 @@ aht_status_t aht21_driver_instance(
     {
         return AHT_ERRORPARAMETER;
     }
-    //外部接口赋值
+    //外部接口赋值      AHT21_IIC_inst  p_aht21_instance->p_iic_instance
     p_aht21_instance->p_iic_instance = p_iic_instance;  //rtos c(app)层传入iic实例指针
     p_aht21_instance->p_timebase_ms = p_timebase_ms;
     p_aht21_instance->p_yield_interface = p_yield_interface;

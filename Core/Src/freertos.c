@@ -91,20 +91,20 @@ int8_t        my_iic_recevbyte       (void * bus,uint8_t * data){
      *data = IICReceiveByte(&iic_instance);
     return AHT_OK;
 }
-/*****************多个字节暂时不用看后续教�?***************************/
+/*****************多个字节暂时不用看后续教�??***************************/
 int8_t        my_iic_send_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
-    IIC_Write_Multi_Byte(&iic_instance,NULL,NULL,size,pdata); //pdata是地�?�?般是个数�?
+    IIC_Write_Multi_Byte(&iic_instance,NULL,NULL,size,pdata); //pdata是地�??�??般是个数�??
     return AHT_OK;                    //dev addr + reg addr + size + pdata
 }//iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t length,uint8_t buff[]
 int8_t        my_iic_rece_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
     IIC_Read_Multi_Byte(&iic_instance,NULL,NULL,size,pdata);
     return AHT_OK;                    //dev addr + reg addr + size + pdata      
 }
-int8_t my_iic_critical_enter(void)
+static int8_t my_iic_critical_enter(void)//os_critical_enter
 {
     vPortEnterCritical();
 }
-int8_t my_iic_critical_exit(void)
+static int8_t my_iic_critical_exit(void)
 {
     vPortExitCritical();
 }
@@ -232,10 +232,14 @@ void StartDefaultTask(void *argument)
                     );
   printf("aht21_instance = %p\r\n",&aht21_instance);
   
-  /************这里是后续handler 业务层做的 现在这里只是单元测试*/
+  /************这里是后续handler 业务层做�? 现在这里只是单元测试*/
   float temp;
   float humi;
-
+	aht21_instance.pf_read_humi(&aht21_instance,&humi);  //
+  aht21_instance.pf_read_temp(&aht21_instance,&temp);  //
+  printf("humi = %f\r\n",humi);
+  printf("humi end\r\n");
+  printf("temp = %f\r\n",temp);
 
   
 //	printf("hello win\r\n");     
@@ -244,11 +248,8 @@ void StartDefaultTask(void *argument)
 //  printf("nihao win2222\r\n");     
 
 	for(;;)   
-	{	   aht21_instance.pf_read_humi(&aht21_instance,&humi);  //
-  aht21_instance.pf_read_temp(&aht21_instance,&temp);  //
-  printf("humi = %f\r\n",humi);
-  printf("humi end\r\n");
-  printf("temp = %f\r\n",temp);
+	{	   
+
 	//	HAL_GPIO_TogglePin(LED_Test_GPIO_Port, LED_Test_Pin);
 	//	HAL_Delay(500);
 		osDelay(1000);

@@ -33,10 +33,10 @@
 void _sys_exit(int x) { x = x; }
 struct __FILE {
     int handle;
-    // 不需要额外成员，�?小定义即可补全struct __FILE定义，让FILE变成完整类型
+    // 不需要额外成员，�??小定义即可补全struct __FILE定义，让FILE变成完整类型
 };
 
-FILE __stdout; // 现在可以正常定义�?
+FILE __stdout; // 现在可以正常定义�??
 
 
 /* USER CODE END Includes */
@@ -107,6 +107,8 @@ int main(void)
   MX_USART1_UART_Init();
 //  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  // __HAL_RCC_GPIOB_CLK_ENABLE();   // 使能 GPIOB 时钟
+// __HAL_RCC_GPIOB_CLK_DISABLE();   // 使能 GPIOB 时钟
 // 	delay_init();
 // 	printf("hello\r\n");
 // 	  printf("hello world1 SystemCoreClock = [%d] \r\n",SystemCoreClock);
@@ -115,7 +117,7 @@ int main(void)
 //     .IIC_SCL_PIN=GPIO_PIN_14,
 //     .IIC_SDA_PORT=GPIOB,
 //     .IIC_SDA_PIN=GPIO_PIN_13
-// };//(PB13(SDA)/PB14(SCL)引|�?
+// };//(PB13(SDA)/PB14(SCL)引|�??
 //   IICInit(&AHT21_BUS);
 //   IICStart(&AHT21_BUS);
 //   IICSendByte(&AHT21_BUS,0x70);
