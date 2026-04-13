@@ -34,7 +34,7 @@
 #include "stdint.h"
 #include "bsp_aht21_driver.h"
 
-
+#include <stdbool.h>
 //******************************* Defines ***********************************//
 #define OS_SUPPORTING
 
@@ -70,7 +70,7 @@ typedef struct {  //1time？2读temp/humi/both	回调函数（x1.5
     float * humi;
     uint32_t * lifetime;
     uint32_t * timestamp;
-    void (*callback)(float * , float *);
+    void (*pf_callback)(float * , float *);
 }handler_aht_event_t;
     
 //******2.OS 提供的queue结构体**********//
@@ -78,14 +78,15 @@ typedef struct {  //1time？2读temp/humi/both	回调函数（x1.5
  * 但实际上也可以封装一下 os 创建thread的函数
  */
 typedef struct {
- handler_aht_status_t (*Queuecreate)(void item_num,
-                                        void size,
-                                        void * Q_handler);
-    handler_aht_status_t (*Queuedelete)(void* Q_handler);
-    handler_aht_status_t (*Queueput)(void*Q_handler,
-                                        void * item,
+    handler_aht_status_t (*Queuecreate)(uint32_t const item_num,
+                                        uint32_t const size,
+                                        void** Q_handler);
+    handler_aht_status_t (*Queuedelete)(void * const Q_handler);
+
+    handler_aht_status_t (*Queueput   )(void * const Q_handler,
+                                        void * const item,
                                         uint32_t timeout);
-    handler_aht_status_t (*Queueget)(void* Q_handler,
+    handler_aht_status_t (*Queueget   )(void * Q_handler,
                                         void * msg,
                                         uint32_t timeout);
 }os_queue_t;
@@ -94,11 +95,12 @@ typedef struct {
      *        param for task; priority;二级 pointer to task
      */
 
-typedef struct {
-    handler_aht_status_t (*Threadcreate)(void*);
-    handler_aht_status_t (*Threaddelete)(void*);
+// typedef struct {
+//     handler_aht_status_t (*Threadcreate)(void* thread_func,
+//             /*二级指针 修改指针*/         void** thread_handler);
+//     handler_aht_status_t (*Threaddelete)(void* thread_handler);
 
-}os_thread_t;
+// }os_thread_t;
 //******3.向传感器层提供接口的结构体--input arg/sensor interface**********//
 
 typedef struct{
@@ -106,6 +108,9 @@ typedef struct{
     timebases_ms_t            * p_timebase_ms;
     yield_interface_t         * p_yield_interface;  //delay
     iic_driver_instance_t     * p_iic_instance;
+    os_queue_t                * p_os_queue;
+    // os_thread_t               * p_os_thread;
+
 }sensor_interface_i2c_timebase_delay_t;
 
 
@@ -138,8 +143,8 @@ typedef struct bsp_handler_aht21_driver
     /***os-thread       use threadnew
       * include create delete 句柄
     */
-    os_thread_t               * p_os_thread;
-    void                      * p_thread_handler;
+    // os_thread_t               * p_os_thread;
+    // void                      * p_thread_handler;
     
     /***参考里面写的
      * tick 
@@ -152,14 +157,14 @@ typedef struct bsp_handler_aht21_driver
 void aht21_handler_thread_func(void * arg);
 //******************************* Functions ***********************************//
 handler_aht_status_t aht21_handler_instance(
-                                    bsp_handler_aht21_driver_t * const self,//
-                                    sensor_interface_i2c_timebase_delay_t * const 
+                                    bsp_handler_aht21_driver_t * const p_handler_aht21_instance,//
+                                    sensor_interface_i2c_timebase_delay_t * const p_sensor_interface
 );
 /****读取传感器数据
  * 类似于led的control函数   进行事件发送到队列
  * self->p_os_queue_interface->pf_os_queue_put(self->queue_handler,&led_event,0);
  */
-void bsp_aht21_handler_read(handler_aht_event_t * event);  //
+handler_aht_status_t bsp_aht21_handler_read(handler_aht_event_t * event);  //
 
 
 #endif

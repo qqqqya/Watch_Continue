@@ -150,25 +150,9 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>150</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134232828</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\BSP\AHT21\bsp_aht21_driver.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../BSP/AHT21/bsp_aht21_driver.c\150</Expression>
-        </Bp>
-        <Bp>
-          <Number>1</Number>
-          <Type>0</Type>
           <LineNumber>131</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134232724</Address>
+          <Address>134235994</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
@@ -178,6 +162,54 @@
           <Filename>..\BSP\AHT21\bsp_aht21_driver.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression>\\Watch_Continue\../BSP/AHT21/bsp_aht21_driver.c\131</Expression>
+        </Bp>
+        <Bp>
+          <Number>1</Number>
+          <Type>0</Type>
+          <LineNumber>144</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134238966</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Core/Src/main.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Watch_Continue\../Core/Src/main.c\144</Expression>
+        </Bp>
+        <Bp>
+          <Number>2</Number>
+          <Type>0</Type>
+          <LineNumber>278</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134239366</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Watch_Continue\../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c\278</Expression>
+        </Bp>
+        <Bp>
+          <Number>3</Number>
+          <Type>0</Type>
+          <LineNumber>2075</LineNumber>
+          <EnabledFlag>1</EnabledFlag>
+          <Address>134244652</Address>
+          <ByteObject>0</ByteObject>
+          <HtxType>0</HtxType>
+          <ManyObjects>0</ManyObjects>
+          <SizeOfObject>0</SizeOfObject>
+          <BreakByAccess>0</BreakByAccess>
+          <BreakIfRCount>1</BreakIfRCount>
+          <Filename>../Middlewares/Third_Party/FreeRTOS/Source/tasks.c</Filename>
+          <ExecCommand></ExecCommand>
+          <Expression>\\Watch_Continue\../Middlewares/Third_Party/FreeRTOS/Source/tasks.c\2075</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow2>
@@ -856,6 +888,30 @@
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
     </File>
+    <File>
+      <GroupNumber>6</GroupNumber>
+      <FileNumber>48</FileNumber>
+      <FileType>1</FileType>
+      <tvExp>0</tvExp>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <bDave2>0</bDave2>
+      <PathWithFileName>..\BSP\AHT21\bsp_aht21_handler.c</PathWithFileName>
+      <FilenameWithoutPath>bsp_aht21_handler.c</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
+    <File>
+      <GroupNumber>6</GroupNumber>
+      <FileNumber>49</FileNumber>
+      <FileType>5</FileType>
+      <tvExp>0</tvExp>
+      <tvExpOptDlg>0</tvExpOptDlg>
+      <bDave2>0</bDave2>
+      <PathWithFileName>..\BSP\AHT21\bsp_aht21_handler.h</PathWithFileName>
+      <FilenameWithoutPath>bsp_aht21_handler.h</FilenameWithoutPath>
+      <RteFlg>0</RteFlg>
+      <bShared>0</bShared>
+    </File>
   </Group>
 
   <Group>
@@ -866,7 +922,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>7</GroupNumber>
-      <FileNumber>48</FileNumber>
+      <FileNumber>50</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -878,7 +934,7 @@
     </File>
     <File>
       <GroupNumber>7</GroupNumber>
-      <FileNumber>49</FileNumber>
+      <FileNumber>51</FileNumber>
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -898,7 +954,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>50</FileNumber>
+      <FileNumber>52</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -910,7 +966,7 @@
     </File>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>51</FileNumber>
+      <FileNumber>53</FileNumber>
       <FileType>5</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -922,7 +978,7 @@
     </File>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>52</FileNumber>
+      <FileNumber>54</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -934,7 +990,7 @@
     </File>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>53</FileNumber>
+      <FileNumber>55</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -946,7 +1002,7 @@
     </File>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>54</FileNumber>
+      <FileNumber>56</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -958,7 +1014,7 @@
     </File>
     <File>
       <GroupNumber>8</GroupNumber>
-      <FileNumber>55</FileNumber>
+      <FileNumber>57</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -978,7 +1034,7 @@
     <RteFlg>0</RteFlg>
     <File>
       <GroupNumber>9</GroupNumber>
-      <FileNumber>56</FileNumber>
+      <FileNumber>58</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
@@ -990,7 +1046,7 @@
     </File>
     <File>
       <GroupNumber>9</GroupNumber>
-      <FileNumber>57</FileNumber>
+      <FileNumber>59</FileNumber>
       <FileType>1</FileType>
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>

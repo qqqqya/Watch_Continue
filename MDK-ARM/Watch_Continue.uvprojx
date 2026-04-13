@@ -1508,6 +1508,16 @@
               <FileType>5</FileType>
               <FilePath>..\BSP\AHT21\bsp_aht21_driver.h</FilePath>
             </File>
+            <File>
+              <FileName>bsp_aht21_handler.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\AHT21\bsp_aht21_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>bsp_aht21_handler.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\BSP\AHT21\bsp_aht21_handler.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

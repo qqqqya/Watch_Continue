@@ -45,13 +45,13 @@
 #include "main.h"
 #include "usart.h"
 #include "gpio.h"
-//3.	OS Layer
+/***3.	OS Layer********************* */
 #include "FreeRTOS.h"
 #include "task.h"
 #include "queue.h"
 
-
-///4.	BSP提供的头文件 compiling BSP provided headers
+/***4.	BSP提供的头文件 compiling BSP provided headers********************* */
+//4.1 LED Driver
 #include "bsp_led_driver.h"
 #include "bsp_led_handler.h"
 

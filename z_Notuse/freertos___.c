@@ -175,7 +175,7 @@ handler_aht_status_t os_queue_get_myown(void * Q_handler,
 
 
 
-static iic_driver_instance_t aht_iic_func_instance={
+iic_driver_instance_t aht_iic_func_instance={
   .pf_iic_init              = my_iic_init,     //iic_hal.h中的函数
   .pf_iic_deinit            = NULL,     //反初始化函数 目前没有实现
   .pf_iic_start             = my_iic_start,
@@ -195,14 +195,14 @@ static iic_driver_instance_t aht_iic_func_instance={
 
 };
 
-static yield_interface_t yield_interface={
+yield_interface_t yield_interface={
     .rtos_yield = delay_own_ms,
 };
-static timebases_ms_t timebase_interface={
+timebases_ms_t timebase_interface={
     .pf_timebase_gettickms =get_tick_ms,
 };
 
-static os_queue_t os_queue_interface={
+os_queue_t os_queue_interface={
     .Queuecreate = os_queue_create_myown,
     .Queuedelete = os_queue_delete_myown,
     .Queueput = os_queue_put_myown,
@@ -229,14 +229,14 @@ static os_queue_t os_queue_interface={
 osThreadId_t humi_temp_TaskHandle;
 const osThreadAttr_t humi_temp_Task_attributes = {
   .name = "humi_temp_Task",
-  .stack_size = 128 *6,
+  .stack_size = 128 *10,
   .priority = (osPriority_t) osPriorityNormal,
 };
 
 osThreadId_t user_TaskHandle;
 const osThreadAttr_t user_Task_attributes = {
   .name = "user_task",
-  .stack_size = 128 * 5, 
+  .stack_size = 128 * 8, 
   .priority = (osPriority_t) osPriorityNormal,
 };
 /* USER CODE END FunctionPrototypes */
@@ -262,7 +262,7 @@ void user_task_func(void *argument);
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
-static sensor_interface_i2c_timebase_delay_t input_arg={
+sensor_interface_i2c_timebase_delay_t input_arg={
     .p_timebase_ms     = &timebase_interface,
     .p_yield_interface = &yield_interface,
     .p_iic_instance    = &aht_iic_func_instance,   //iic interface
