@@ -237,7 +237,7 @@ osThreadId_t user_TaskHandle;
 const osThreadAttr_t user_Task_attributes = {
   .name = "user_task",
   .stack_size = 128 * 5, 
-  .priority = (osPriority_t) osPriorityNormal,
+  .priority = (osPriority_t) osPriorityBelowNormal,
 };
 /* USER CODE END FunctionPrototypes */
 

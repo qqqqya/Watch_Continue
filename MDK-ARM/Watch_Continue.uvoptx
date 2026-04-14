@@ -150,66 +150,34 @@
         <Bp>
           <Number>0</Number>
           <Type>0</Type>
-          <LineNumber>131</LineNumber>
+          <LineNumber>216</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134235994</Address>
+          <Address>134229156</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\BSP\AHT21\bsp_aht21_driver.c</Filename>
+          <Filename>..\BSP\AHT21\bsp_aht21_handler.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../BSP/AHT21/bsp_aht21_driver.c\131</Expression>
+          <Expression>\\Watch_Continue\../BSP/AHT21/bsp_aht21_handler.c\216</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
           <Type>0</Type>
-          <LineNumber>144</LineNumber>
+          <LineNumber>82</LineNumber>
           <EnabledFlag>1</EnabledFlag>
-          <Address>134238966</Address>
+          <Address>134228720</Address>
           <ByteObject>0</ByteObject>
           <HtxType>0</HtxType>
           <ManyObjects>0</ManyObjects>
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>../Core/Src/main.c</Filename>
+          <Filename>..\BSP\AHT21\bsp_aht21_handler.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../Core/Src/main.c\144</Expression>
-        </Bp>
-        <Bp>
-          <Number>2</Number>
-          <Type>0</Type>
-          <LineNumber>278</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134239366</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2/cmsis_os2.c\278</Expression>
-        </Bp>
-        <Bp>
-          <Number>3</Number>
-          <Type>0</Type>
-          <LineNumber>2075</LineNumber>
-          <EnabledFlag>1</EnabledFlag>
-          <Address>134244652</Address>
-          <ByteObject>0</ByteObject>
-          <HtxType>0</HtxType>
-          <ManyObjects>0</ManyObjects>
-          <SizeOfObject>0</SizeOfObject>
-          <BreakByAccess>0</BreakByAccess>
-          <BreakIfRCount>1</BreakIfRCount>
-          <Filename>../Middlewares/Third_Party/FreeRTOS/Source/tasks.c</Filename>
-          <ExecCommand></ExecCommand>
-          <Expression>\\Watch_Continue\../Middlewares/Third_Party/FreeRTOS/Source/tasks.c\2075</Expression>
+          <Expression>\\Watch_Continue\../BSP/AHT21/bsp_aht21_handler.c\82</Expression>
         </Bp>
       </Breakpoint>
       <WatchWindow2>

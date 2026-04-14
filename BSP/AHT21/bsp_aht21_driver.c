@@ -196,6 +196,7 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
                         /*保留全部精度 消耗资源大*/
     *humi = ((float)humi_data * 100.0f) / 1048576.0f;  // 直接使用浮点数计算，保留全部精度  
     g_temp = ((float)temp_data * 200.0f) / 1048576.0f - 50.0f;  // 利用浮点计算避免小数值时uint32下溢
+    printf("humi: %f\r\n", *humi );
     return AHT_OK;
 }
 
@@ -207,7 +208,7 @@ static aht_status_t aht21_read_temp(bsp_aht21_driver_t *  p_aht21_instance, floa
     // 先humi 在 temp temp直接是gval
     printf("aht21_read_temp\r\n");
     *temp = (float)g_temp;
-
+    printf("temp: %f\r\n", g_temp);
     return AHT_OK;
 }
 

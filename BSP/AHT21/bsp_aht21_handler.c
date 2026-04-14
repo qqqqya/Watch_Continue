@@ -54,10 +54,12 @@ static handler_aht_status_t aht21_handler_init(bsp_handler_aht21_driver_t * cons
 ){
     handler_aht_status_t ret = HANDLER_AHT_OK;
     printf("aht21_handler_     init begin\r\n");
-    /******检查参数是否为空**********/
-    if(NULL == p_handler_aht21_instance){
-        ret = HANDLER_AHT_ERRORPARAMETER;
-    }
+//    /******检查参数是否为空**********/
+//    if(NULL == p_handler_aht21_instance){
+//		
+//        ret = HANDLER_AHT_ERRORPARAMETER;
+//		printf("aht21_instance error:%d\r\n",ret);return ret;
+//    }
     /******队列创建**********/
     ret = p_handler_aht21_instance->p_os_queue->Queuecreate(10,
                                                             sizeof(handler_aht_event_t),
@@ -181,6 +183,59 @@ void aht21_handler_thread_func(void * arg){
     float   temp_val = 0.0f;
     handler_aht_status_t ret = HANDLER_AHT_OK;
         /******在线程函数内部初始化**********/
+        bsp_handler_aht21_driver_t  handler_aht21_instance = {0};
+        sensor_interface_i2c_timebase_delay_t * input_arg = NULL;
+        handler_aht_event_t  event = {0};
+
+        bsp_aht21_driver_t  aht21_driver_instance = {0};///////---------
+    
+    input_arg = (sensor_interface_i2c_timebase_delay_t *)arg;
+    /******1. handler inst**********/
+        //handler 实例如何传入？？？---定义一个
+        //输入参数结构体 ________input arg ____sensor_interface_i2c_timebase_delay_t p_sensor_interface
+        //****挂载driver_instance */
+        handler_aht21_instance.p_aht21_instance=&aht21_driver_instance;
+    ret = aht21_handler_instance(&handler_aht21_instance,
+                                input_arg);
+    if(ret != HANDLER_AHT_OK){  /*  p_aht21_instance->pf_init     (p_handler_aht21_instance->p_aht21_instance);
+                                    // handler_instance contain> handler_init contain> aht21_driver_instance*/
+        printf("aht21_handler_instance error\r\n");
+    }
+    /******1.1 全局handler 变量赋值 __靠近内核**********/
+    __g_val_init(&handler_aht21_instance);
+
+    for(;;){
+        /******2. 读取出队列数据**********/
+    ret = (&handler_aht21_instance)->p_os_queue->Queueget(
+                                                (handler_aht21_instance.p_queue_handler),
+                                                &event,     //接收到队列中的 msg
+                                                MY_MAX_DELAY);
+
+    /******3. 数据处理 需要单独的业务函数**********/
+        //调用get_humi_temp函数     需要传给业务函数handler 实例  事件event  温湿度val
+    ret = get_humi_temp(
+                        &handler_aht21_instance,
+                        &event,
+                        &humi_val,
+                        &temp_val
+                        );
+    if(ret != HANDLER_AHT_OK){
+        printf("get_humi_temp error\r\n");
+    }
+    printf("get_humi_temp!!!!!!!!!\r\n");
+    /******4. 简单回调函数**********/
+    event.pf_callback(&humi_val,&temp_val);
+    }
+
+}
+
+
+#if 0
+void aht21_handler_thread_func(void * arg){
+    float   humi_val = 0.0f;
+    float   temp_val = 0.0f;
+    handler_aht_status_t ret = HANDLER_AHT_OK;
+        /******在线程函数内部初始化**********/
         bsp_handler_aht21_driver_t * p_handler_aht21_instance = {0};
         sensor_interface_i2c_timebase_delay_t * input_arg = NULL;
         handler_aht_event_t * p_event = {0};
@@ -224,6 +279,9 @@ void aht21_handler_thread_func(void * arg){
   
 
 }
+
+#endif
+
 /**
  * @brief app层进行事件通知 写队列
  * 
@@ -239,7 +297,7 @@ handler_aht_status_t bsp_aht21_handler_read(handler_aht_event_t * event){
         return HANDLER_AHT_ERRORPARAMETER;
     }
     /******2. 写队列**********/
-    ret = g_handler_aht21_instance->p_os_queue->Queueput(&(g_handler_aht21_instance->p_queue_handler),
+    ret = g_handler_aht21_instance->p_os_queue->Queueput(g_handler_aht21_instance->p_queue_handler,
                                                         event,
                                                         MY_MAX_DELAY);
     if(ret != HANDLER_AHT_OK){
