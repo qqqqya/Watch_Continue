@@ -39,6 +39,8 @@
 #define HANDLER_NOT_INITED      false
 
 #define MY_MAX_DELAY 0xffffffffUL
+
+#define Handler_AHT21_instance p_handler_aht21_instance->p_aht21_instance
 bsp_handler_aht21_driver_t * g_handler_aht21_instance = NULL;
    
 static handler_aht_status_t __g_val_init(bsp_handler_aht21_driver_t * p_handler_aht21_instance){
@@ -49,29 +51,40 @@ static handler_aht_status_t __g_val_init(bsp_handler_aht21_driver_t * p_handler_
     g_handler_aht21_instance = p_handler_aht21_instance;
     return ret;
 }
+/// @brief 在线程之间也可以这样传递变量
+/// @param p_handler_aht21_instance 
+/// @return 
+static bsp_handler_aht21_driver_t * get_handler_aht21_instance(bsp_handler_aht21_driver_t * p_handler_aht21_instance){
+    if(NULL == p_handler_aht21_instance){
+        return NULL;
+    }
+    return p_handler_aht21_instance;
+}
+
 static handler_aht_status_t aht21_handler_init(bsp_handler_aht21_driver_t * const p_handler_aht21_instance
 
 ){
     handler_aht_status_t ret = HANDLER_AHT_OK;
-    printf("aht21_handler_     init begin\r\n");
+    log_d("aht21_handler_     init begin");
+    // log_d("aht21_handler_     init begin");
 //    /******检查参数是否为空**********/
 //    if(NULL == p_handler_aht21_instance){
 //		
 //        ret = HANDLER_AHT_ERRORPARAMETER;
-//		printf("aht21_instance error:%d\r\n",ret);return ret;
+//		log_d("aht21_instance error:%d",ret);return ret;
 //    }
     /******队列创建**********/
     ret = p_handler_aht21_instance->p_os_queue->Queuecreate(10,
                                                             sizeof(handler_aht_event_t),
-                                                            &(p_handler_aht21_instance->p_queue_handler));
+                                                            &(p_handler_aht21_instance->p_queue_handler));///二级指针
     if(ret != HANDLER_AHT_OK){
         return ret;
     }
-    printf("queue_handler____:%p\r\n",p_handler_aht21_instance->p_queue_handler);
+    log_d("queue_handler____:%p",p_handler_aht21_instance->p_queue_handler);
     /******进行iic interface 相关挂载 初始化
      * 接口传给aht instance**********/
-    printf("aht21_driver   init begin\r\n");
-    ret=aht21_driver_instance(p_handler_aht21_instance->p_aht21_instance,
+    log_d("aht21_driver   init begin");
+    ret=aht21_driver_instance(Handler_AHT21_instance,
                             p_handler_aht21_instance->p_iic_instance,
                             p_handler_aht21_instance->p_timebase_ms,
                             p_handler_aht21_instance->p_yield_interface);
@@ -79,7 +92,7 @@ static handler_aht_status_t aht21_handler_init(bsp_handler_aht21_driver_t * cons
     if(ret != HANDLER_AHT_OK){
         return ret;
     }
-    printf("aht21_handler_driver   init OK------------\r\n");
+    log_d("aht21_handler_driver   init OK------------\r\n");
     return ret;
 
 }
@@ -96,7 +109,7 @@ handler_aht_status_t aht21_handler_instance(
                                     sensor_interface_i2c_timebase_delay_t * const p_sensor_interface
 ){
     handler_aht_status_t ret = HANDLER_AHT_OK;
-    printf("aht21_handler_instance start------------\r\n");
+    log_d("aht21_handler_instance start------------");
 
     /******1. 检查参数是否为空**********/
     if(NULL == p_handler_aht21_instance||
@@ -107,7 +120,7 @@ handler_aht_status_t aht21_handler_instance(
        NULL == p_sensor_interface->p_timebase_ms    ||
        NULL == p_sensor_interface->p_yield_interface
     ){
-        printf("p_sensor_interface is NULL\r\n");
+        log_d("p_sensor_interface is NULL");
         ret = HANDLER_AHT_ERRORPARAMETER;
     }
     // 这个 inited 怎么挂载来着if(NULL == p_handler_aht21_instance->p_private_data_init->inited){
@@ -123,7 +136,7 @@ handler_aht_status_t aht21_handler_instance(
 
     /******4. init 标志位修改**********/
     p_handler_aht21_instance->p_private_data_init->is_initated = HANDLER_INITED;
-    printf("aht21_handler_instance OK------------\r\n");
+    log_d("aht21_handler_instance OK------------\r\n");
     return ret;
 }
 static handler_aht_status_t get_humi_temp(
@@ -139,22 +152,31 @@ static handler_aht_status_t get_humi_temp(
        NULL == p_event                  ){
         ret = HANDLER_AHT_ERRORPARAMETER;
     }
+    uint32_t tim = 0;
+        p_handler_aht21_instance->p_timebase_ms->pf_timebase_gettickms(&tim);
+        log_d("tim: %d", tim);
 
     /******读取湿度温度**********/
     switch(p_event->humi_temp_select){/*实际上要先读取湿度 再读取温度   所以事件中选择both*/
         case HUMI_TEMP_HUMI:
-            ret = p_handler_aht21_instance->p_aht21_instance->pf_read_humi(p_handler_aht21_instance->p_aht21_instance,
+            ret = Handler_AHT21_instance->pf_read_humi(Handler_AHT21_instance,
                                                                 humi_val);
             break;
         case HUMI_TEMP_TEMP:
-            ret = p_handler_aht21_instance->p_aht21_instance->pf_read_temp(p_handler_aht21_instance->p_aht21_instance,
+            ret = Handler_AHT21_instance->pf_read_temp(Handler_AHT21_instance,
                                                                 temp_val);
             break;
-        case HUMI_TEMP_BOTH:
-        ret = p_handler_aht21_instance->p_aht21_instance->pf_read_humi(p_handler_aht21_instance->p_aht21_instance,
-                                                                humi_val);
-        ret = p_handler_aht21_instance->p_aht21_instance->pf_read_temp(p_handler_aht21_instance->p_aht21_instance,
-                                                            temp_val);
+        case HUMI_TEMP_BOTH://p_handler_aht21_instance->last_humi_tick  init=0   ||  0 == tim
+        if((tim - p_handler_aht21_instance->last_humi_tick) > p_event->lifetime  ||  p_event->lifetime > tim ){
+            ret = Handler_AHT21_instance->pf_read_humi(Handler_AHT21_instance,
+                                                                    humi_val);
+            ret = Handler_AHT21_instance->pf_read_temp(Handler_AHT21_instance,
+                                                                temp_val);
+
+            p_handler_aht21_instance->last_humi_tick = tim;
+            log_i("NEW Data");
+        }
+
             break;
         default:
             *temp_val = 0;
@@ -163,7 +185,7 @@ static handler_aht_status_t get_humi_temp(
             break;
     }
 
-    /*p_handler_aht21_instance->p_aht21_instance->pf_read_humi(p_handler_aht21_instance->p_aht21_instance,
+    /*Handler_AHT21_instance->pf_read_humi(Handler_AHT21_instance,
                                                                 humi_val);*/
 
     if(ret != HANDLER_AHT_OK){
@@ -198,8 +220,8 @@ void aht21_handler_thread_func(void * arg){
     ret = aht21_handler_instance(&handler_aht21_instance,
                                 input_arg);
     if(ret != HANDLER_AHT_OK){  /*  p_aht21_instance->pf_init     (p_handler_aht21_instance->p_aht21_instance);
-                                    // handler_instance contain> handler_init contain> aht21_driver_instance*/
-        printf("aht21_handler_instance error\r\n");
+    ////// handler_instance contain> handler_init contain> aht21_driver_instance*/
+        log_d("aht21_handler_instance error");
     }
     /******1.1 全局handler 变量赋值 __靠近内核**********/
     __g_val_init(&handler_aht21_instance);
@@ -220,11 +242,15 @@ void aht21_handler_thread_func(void * arg){
                         &temp_val
                         );
     if(ret != HANDLER_AHT_OK){
-        printf("get_humi_temp error\r\n");
+        log_d("get_humi_temp error");
     }
-    printf("get_humi_temp!!!!!!!!!\r\n");
+    log_d("get_humi_temp!!!!!!!!!\r\n");
     /******4. 简单回调函数**********/
     event.pf_callback(&humi_val,&temp_val);
+        // uint32_t tim = 0;
+        // handler_aht21_instance.p_timebase_ms->pf_timebase_gettickms(&tim);
+        // log_d("tim: %d\r\n", tim);
+        
     }
 
 }
@@ -290,10 +316,10 @@ void aht21_handler_thread_func(void * arg){
 handler_aht_status_t bsp_aht21_handler_read(handler_aht_event_t * event){
     handler_aht_status_t ret = HANDLER_AHT_OK;
     
-    printf("handle send event start\r\n");
+    log_d("handle send event start");
     /******1. 检查是否初始化**********/
     if(HANDLER_NOT_INITED == g_handler_aht21_instance->p_private_data_init->is_initated){
-        printf("handler_read: not init\r\n");
+        log_d("handler_read: not init");
         return HANDLER_AHT_ERRORPARAMETER;
     }
     /******2. 写队列**********/
@@ -301,10 +327,10 @@ handler_aht_status_t bsp_aht21_handler_read(handler_aht_event_t * event){
                                                         event,
                                                         MY_MAX_DELAY);
     if(ret != HANDLER_AHT_OK){
-        printf("handler_read Queueput error\r\n");
+        log_d("handler_read Queueput error");
         return ret;
     }                                       
-    printf("handle send event OK\r\n");
+    log_d("handle send event OK");
     
     return ret;                                           
 }

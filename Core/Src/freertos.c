@@ -22,8 +22,10 @@
 /* USER CODE END Header */
 
 /* Includes ------------------------------------------------------------------*/
-
+#include "FreeRTOS.h"
+#include "task.h"
 #include "main.h"
+#include "cmsis_os.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -102,9 +104,9 @@ int8_t        my_iic_recevbyte       (void * bus,uint8_t * data){
      *data = IICReceiveByte(&iic_instance);
     return AHT_OK;
 }
-/*****************多个字节暂时不用看后续教�??***************************/
+/*****************多个字节暂时不用看后续教�????***************************/
 int8_t        my_iic_send_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
-    IIC_Write_Multi_Byte(&iic_instance,NULL,NULL,size,pdata); //pdata是地�??�??般是个数�??
+    IIC_Write_Multi_Byte(&iic_instance,NULL,NULL,size,pdata); //pdata是地�????�????般是个数�????
     return AHT_OK;                    //dev addr + reg addr + size + pdata
 }//iic_bus_t *bus, uint8_t daddr,uint8_t reg,uint8_t length,uint8_t buff[]
 int8_t        my_iic_rece_multibyte       (void * bus,uint8_t * pdata,uint8_t size){
@@ -137,7 +139,7 @@ handler_aht_status_t os_queue_create_myown(uint32_t  item_num,
                                         uint32_t  size,
                                         void** Q_handler)
 {
-    * Q_handler=osMessageQueueNew(item_num, size,NULL);//attr – [in] message queue attributes; NULL: default values.
+    * Q_handler=osMessageQueueNew(item_num, size,NULL);//attr �?? [in] message queue attributes; NULL: default values.
     //在handler init函数里面打印Q_handler
     if(* Q_handler==NULL)
     {
@@ -166,14 +168,11 @@ handler_aht_status_t os_queue_get_myown(void * Q_handler,
 {
     if(osOK!=osMessageQueueGet(Q_handler,msg,NULL,timeout))
     {//mq_id, void *msg_ptr, uint8_t *msg_prio,  timeout)
-      //msg_prio – [out] pointer to buffer for message priority or NULL.
+      //msg_prio �?? [out] pointer to buffer for message priority or NULL.
         return HANDLER_AHT_ERROR;
     }
     return HANDLER_AHT_OK;
 }
-
-
-
 
 static iic_driver_instance_t aht_iic_func_instance={
   .pf_iic_init              = my_iic_init,     //iic_hal.h中的函数
@@ -208,7 +207,7 @@ static os_queue_t os_queue_interface={
     .Queueput = os_queue_put_myown,
     .Queueget = os_queue_get_myown,
 };
-/**四个interface分别从core，driver还有OS层传过来，通过handler层传给driver层 */
+/**四个interface分别从core，driver还有OS层传过来，�?�过handler层传给driver�?? */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -217,12 +216,12 @@ static os_queue_t os_queue_interface={
 
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
-// osThreadId_t defaultTaskHandle;
-// const osThreadAttr_t defaultTask_attributes = {
-//   .name = "defaultTask",
-//   .stack_size = 128 * 4,
-//   .priority = (osPriority_t) osPriorityNormal,
-// };
+osThreadId_t defaultTaskHandle;
+const osThreadAttr_t defaultTask_attributes = {
+  .name = "defaultTask",
+  .stack_size = 128 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -237,24 +236,18 @@ osThreadId_t user_TaskHandle;
 const osThreadAttr_t user_Task_attributes = {
   .name = "user_task",
   .stack_size = 128 * 5, 
-  .priority = (osPriority_t) osPriorityBelowNormal,
+//  .priority = (osPriority_t) osPriorityNormal,
+	.priority = (osPriority_t) osPriorityBelowNormal,
 };
+
+void aht21_handler_thread_func(void *argument);
+void user_task_func(void *argument);
 /* USER CODE END FunctionPrototypes */
 
 void StartDefaultTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
-static float g_temperature = 0;
-void temp_humi_callback(float *temperature, float *humidity)
-{
-    // log_d("callback:temperature = %f, humidity = %f", *temperature, *humidity);
-    
-    //Forbiden :#1035-D: single-precision operand 
-    //implicitly converted to double-precision so with (float)1.5
-    g_temperature = (*temperature)*(float)1.5;
-}
-//void aht21_handler_thread_func(void *argument);
-void user_task_func(void *argument);
+
 /**
   * @brief  FreeRTOS initialization
   * @param  None
@@ -263,11 +256,12 @@ void user_task_func(void *argument);
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 static sensor_interface_i2c_timebase_delay_t input_arg={
-    .p_timebase_ms     = &timebase_interface,
+    .p_timebase_ms     = &timebase_interface,   //ms
     .p_yield_interface = &yield_interface,
     .p_iic_instance    = &aht_iic_func_instance,   //iic interface
     .p_os_queue        = &os_queue_interface,
 };
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */
@@ -288,13 +282,7 @@ static sensor_interface_i2c_timebase_delay_t input_arg={
 
   /* Create the thread(s) */
   /* creation of defaultTask */
-//    osThreadId_t defaultTaskHandle;
-//  const osThreadAttr_t defaultTask_attributes = {
-//    .name = "defaultTask",
-//    .stack_size = 128 * 4,
-//    .priority = (osPriority_t) osPriorityNormal,
-//  };
-//    defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
+  defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
@@ -315,67 +303,70 @@ static sensor_interface_i2c_timebase_delay_t input_arg={
   /* USER CODE END RTOS_EVENTS */
 
 }
-__weak void aht21_handler_thread_func(void *argument)
-{
-  /* USER CODE BEGIN aht21_handler_thread_func */
-  /* Infinite loop */
 
-	for(;;)   
-	{	   
-
-	//	HAL_GPIO_TogglePin(LED_Test_GPIO_Port, LED_Test_Pin);
-	//	HAL_Delay(500);
-		osDelay(1);
-	}
-  /* USER CODE END StartDefaultTask */
-}
-/* USER CODE BEGIN Header_user_task_func */
+/* USER CODE BEGIN Header_StartDefaultTask */
 /**
-  * @brief  Function implementing the user_task thread.
+  * @brief  Function implementing the defaultTask thread.
   * @param  argument: Not used
   * @retval None
   */
-/* USER CODE END Header_user_task_func */
+/* USER CODE END Header_StartDefaultTask */
+void StartDefaultTask(void *argument)
+{
+  /* USER CODE BEGIN StartDefaultTask */
+  /* Infinite loop */
+	for(;;)   
+	{	   
+    osDelay(2);
+    
+	}
+  /* USER CODE END StartDefaultTask */
+}
+
+/* Private application code --------------------------------------------------*/
+/* USER CODE BEGIN Application */
+float g_temperature=0;
+void temp_humi_callback(float *humidity, float *temperature)
+{
+    log_d("callback:temperature = %f, humidity = %f", *temperature, *humidity);
+    
+    //Forbiden :#1035-D: single-precision operand 
+    //implicitly converted to double-precision so with (float)1.5
+    g_temperature = (*temperature)*(float)1.5;
+    log_d("g_temperature = %f\r\n", g_temperature);
+}
+
+__weak void aht21_handler_thread_func(void *argument)
+{
+  /* USER CODE BEGIN temp_humi_handler_thread */
+  /* Infinite loop */
+  for(;;)
+  {
+    osDelay(1);
+  }
+  /* USER CODE END temp_humi_handler_thread */
+}
+
 void user_task_func(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
-//  printf("hello win\r\n");  
+//  log_d("hello win\r\n");  
   handler_aht_event_t event={
-
+    .lifetime = 8000,// 2s 2000ms  data freshness
     .humi_temp_select = HUMI_TEMP_BOTH,
     .pf_callback = temp_humi_callback,
   };
 	for(;;)   
 	{	   
-    printf("userTaskFunction start_send event\r\n");
+    
+    log_d("userTaskFunction start_send event\r\n");
+    log_d("userTaskFunction start_send event\r\n");
     osDelay(2000);
     bsp_aht21_handler_read(&event);
     
 	}
   /* USER CODE END StartDefaultTask */
 }
-
-void StartDefaultTask(void *argument)
-{
-  /* USER CODE BEGIN StartDefaultTask */
-  /* Infinite loop */
-  printf("hello win\r\n");  
-
-	for(;;)   
-	{	   
-
-	//	HAL_GPIO_TogglePin(LED_Test_GPIO_Port, LED_Test_Pin);
-	//	HAL_Delay(500);
-		osDelay(1000);
-	}
-  /* USER CODE END StartDefaultTask */
-}
-
-
-
-/* Private application code --------------------------------------------------*/
-/* USER CODE BEGIN Application */
-
 /* USER CODE END Application */
 

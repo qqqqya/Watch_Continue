@@ -251,7 +251,7 @@ led_handler_status_t led_register(
                                 [self->register_led_instances.led_instance_num] = led_driver;
             *led_index = self->register_led_instances.led_instance_num;//
             //直接操作原来的变量  注册成功后  led_index 会增加1
-            self->register_led_instances.led_instance_num++;
+            self->register_led_instances.led_instance_num++;///维护原子性
 
             /* 
             self->register_led_instances.led_instance_aarry[*led_index]=led_driver

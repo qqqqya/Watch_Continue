@@ -69,7 +69,7 @@ static aht_status_t __read_id(bsp_aht21_driver_t *  p_aht21_instance){
     {   //检查AHT21传感器 id
         return AHT_ERROR;  //device id错误
     }
-    printf("------------aht21 device id read: 0x%02X\r\n", recv);
+    // log_d("------------aht21 device id read: 0x%02X", recv);
     g_dev_id = AHT21_ID;
     return ret;
 }
@@ -81,7 +81,7 @@ static aht_status_t aht21_read_id(bsp_aht21_driver_t *  p_aht21_instance){
         return AHT_ERRORRESOURCE;  //未初始化化
     }
     // log_d("aht21_read_id");
-    // printf("aht21_read_id_ing\r\n");
+    // log_d("aht21_read_id_ing");
     return g_dev_id;    //__read_id函数中会把读取到的device id存入全局变量g_dev_id中  这里直接返回就好了
 }
 
@@ -97,23 +97,23 @@ static aht_status_t aht21_init( bsp_aht21_driver_t *  p_aht21_instance){
     }
     if (NULL == AHT21_IIC_inst->pf_iic_init ||
         NULL == AHT21_IIC_inst                    ) {
-        printf("IIC instance is NULL\r\n");
+        log_d("IIC instance is NULL");
     }
-    printf("aht21 init start\r\n");
+    log_d("aht21 init start");
    p_aht21_instance->p_yield_interface->rtos_yield(200);       //等待200ms 让传感器上电稳定
 	
     AHT21_IIC_inst->pf_iic_init(NULL);  //调用iic实例的初始化函数
     // delay_ms(40);
     //
     ret=__read_id(p_aht21_instance); 
-    printf("aht21 IIC instance inited\r\n");
+    log_d("aht21 IIC instance inited");
     if(ret != AHT_OK)
     {
-        printf("aht21 read id failed\r\n");
+        log_d("aht21 read id failed");
         return AHT_ERRORRESOURCE;
     }
     g_inited=AHT21_INITED;  //标记已经初始化过了
-    printf("aht21 device id: 0x%02X\r\n", aht21_read_id(p_aht21_instance));
+    log_d("aht21 device id: 0x%02X\r\n", aht21_read_id(p_aht21_instance));
     
     return AHT_OK;
 }
@@ -130,7 +130,7 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
     {
         return AHT_ERRORRESOURCE;  //未初始化化
     }
-    printf("aht21_read_humi\r\n");
+    log_d("aht21_read_humi");
     uint8_t ret=AHT_OK;
     uint8_t aht21_cmd[]={AHT21_MEASURE_CMD,AHT21_MEASURE_CMD_PARAMS1,AHT21_MEASURE_CMD_PARAMS2};
     uint8_t recv[7]={0};
@@ -196,7 +196,7 @@ static aht_status_t aht21_read_humi(bsp_aht21_driver_t *  p_aht21_instance, floa
                         /*保留全部精度 消耗资源大*/
     *humi = ((float)humi_data * 100.0f) / 1048576.0f;  // 直接使用浮点数计算，保留全部精度  
     g_temp = ((float)temp_data * 200.0f) / 1048576.0f - 50.0f;  // 利用浮点计算避免小数值时uint32下溢
-    printf("humi: %f\r\n", *humi );
+    // log_d("humi: %f", *humi );
     return AHT_OK;
 }
 
@@ -206,9 +206,9 @@ static aht_status_t aht21_read_temp(bsp_aht21_driver_t *  p_aht21_instance, floa
         return AHT_ERRORRESOURCE;  //未初始化化
     }
     // 先humi 在 temp temp直接是gval
-    printf("aht21_read_temp\r\n");
+    // log_d("aht21_read_temp");
     *temp = (float)g_temp;
-    printf("temp: %f\r\n", g_temp);
+    // log_d("driver temp: %f", g_temp);
     return AHT_OK;
 }
 
@@ -218,7 +218,7 @@ static aht_status_t aht21_sleep(bsp_aht21_driver_t *  p_aht21_instance){
     {
         return AHT_ERRORRESOURCE;  //未初始化化
     }
-    printf("aht21_sleep\r\n");
+    log_d("aht21_sleep");
     return AHT_OK;
 }
 static aht_status_t aht21_wakeup(bsp_aht21_driver_t *  p_aht21_instance){
@@ -226,7 +226,7 @@ static aht_status_t aht21_wakeup(bsp_aht21_driver_t *  p_aht21_instance){
     {
         return AHT_ERRORRESOURCE;  //未初始化化
     }
-    printf("aht21_wakeup\r\n");
+    log_d("aht21_wakeup");
     return AHT_OK;
 }
 #endif
@@ -265,7 +265,7 @@ aht_status_t aht21_driver_instance(
     //调用初始化函数
     aht21_init(p_aht21_instance);
     g_inited = AHT21_INITED;
-    printf("aht21_driver_instance init done\r\n");
+    log_d("aht21_driver_instance init done\r\n");
 
     return AHT_OK;
 }

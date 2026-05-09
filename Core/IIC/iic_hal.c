@@ -269,13 +269,13 @@ unsigned char IIC_Read_One_Byte(iic_bus_t *bus, uint8_t daddr,uint8_t reg)
 {
 	unsigned char dat;
 	IICStart(bus);
-	IICSendByte(bus,daddr<<1);
+	IICSendByte(bus,daddr<<1);//设备地址
 	IICWaitAck(bus);
-	IICSendByte(bus,reg);
+	IICSendByte(bus,reg);//寄存器地址
 	IICWaitAck(bus);
 	
 	IICStart(bus);
-	IICSendByte(bus,(daddr<<1)+1);
+	IICSendByte(bus,(daddr<<1)+1);//设备地址+读命令 1
 	IICWaitAck(bus);
 	dat = IICReceiveByte(bus);
 	IICSendNotAck(bus);
@@ -298,7 +298,7 @@ uint8_t IIC_Read_Multi_Byte(iic_bus_t *bus, uint8_t daddr, uint8_t reg, uint8_t 
 	IICWaitAck(bus);
 	
 	IICStart(bus);
-	IICSendByte(bus,(daddr<<1)+1);
+	IICSendByte(bus,(daddr<<1)+1);//设备地址+读命令 1
 	IICWaitAck(bus);
 	for(i=0;i<length;i++)
 	{
@@ -320,8 +320,8 @@ void IICInit(iic_bus_t *bus)
 		//bus->CLK_ENABLE();
 		
     GPIO_InitStructure.Pin = bus->IIC_SDA_PIN ;
-    //GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_OD;
-     GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_OD;
+    //  GPIO_InitStructure.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStructure.Pull = GPIO_PULLUP;
     GPIO_InitStructure.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(bus->IIC_SDA_PORT, &GPIO_InitStructure);

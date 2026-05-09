@@ -26,18 +26,8 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "iic_hal.h"
+#include "elog.h"
 // #include "delay.h"
-
-//禁用ARM半主机模式（核心！否则printf不生效）
-#pragma import(__use_no_semihosting)
-void _sys_exit(int x) { x = x; }
-struct __FILE {
-    int handle;
-    // 不需要额外成员，�??小定义即可补全struct __FILE定义，让FILE变成完整类型
-};
-
-FILE __stdout; // 现在可以正常定义�??
-
 
 /* USER CODE END Includes */
 
@@ -72,7 +62,15 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-
+void test_log(void){
+  log_d("test log\r\n");
+  log_e("test log error\r\n");
+  log_w("test log warn\r\n");
+  log_i("test log info\r\n");
+  log_d("test log debug\r\n");
+  log_v("test log verbose\r\n");
+  // log_raw("test log raw\r\n");
+}
 /* USER CODE END 0 */
 
 /**
@@ -105,32 +103,23 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
-//  MX_I2C1_Init();
+  MX_I2C1_Init();
   /* USER CODE BEGIN 2 */
+  
+ 	elog_init();
+	/* set EasyLogger log format */
+	elog_set_fmt(ELOG_LVL_ASSERT, ELOG_FMT_ALL);
+	elog_set_fmt(ELOG_LVL_ERROR, ELOG_FMT_LVL | ELOG_FMT_TAG | ELOG_FMT_TIME);
+	elog_set_fmt(ELOG_LVL_WARN, ELOG_FMT_LVL | ELOG_FMT_TAG | ELOG_FMT_TIME);
+	elog_set_fmt(ELOG_LVL_INFO, ELOG_FMT_LVL | ELOG_FMT_TAG | ELOG_FMT_TIME);
+	elog_set_fmt(ELOG_LVL_DEBUG, ELOG_FMT_ALL & ~(ELOG_FMT_FUNC | ELOG_FMT_T_INFO | ELOG_FMT_P_INFO));
+	elog_set_fmt(ELOG_LVL_VERBOSE, ELOG_FMT_ALL & ~(ELOG_FMT_FUNC | ELOG_FMT_T_INFO | ELOG_FMT_P_INFO));
+	/* start EasyLogger */
+	elog_start();
+
+//  test_log();
   // __HAL_RCC_GPIOB_CLK_ENABLE();   // 使能 GPIOB 时钟
 // __HAL_RCC_GPIOB_CLK_DISABLE();   // 使能 GPIOB 时钟
-// 	delay_init();
-// 	printf("hello\r\n");
-// 	  printf("hello world1 SystemCoreClock = [%d] \r\n",SystemCoreClock);
-//   iic_bus_t AHT21_BUS={
-//     .IIC_SCL_PORT=GPIOB,
-//     .IIC_SCL_PIN=GPIO_PIN_14,
-//     .IIC_SDA_PORT=GPIOB,
-//     .IIC_SDA_PIN=GPIO_PIN_13
-// };//(PB13(SDA)/PB14(SCL)引|�??
-//   IICInit(&AHT21_BUS);
-//   IICStart(&AHT21_BUS);
-//   IICSendByte(&AHT21_BUS,0x70);
-//   if(IICWaitAck(&AHT21_BUS))
-//   {
-//     printf("AHT21 no ack\r\n");
-//   }
-//   else
-//   {
-//     printf("AHT21 ack\r\n");
-//   }
-//   IICStop(&AHT21_BUS);
-
 
   /* USER CODE END 2 */
 

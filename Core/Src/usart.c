@@ -23,23 +23,34 @@
 /* USER CODE BEGIN 0 */
 //use printf 要重定向
 
-//#ifdef	__GNUC__
-//	#define PUTCHAR_PROTOTYPE int _io_putchar(int ch)
-//#else
-//	#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
-//#endif /*__GNUC__*/
-////int fputc(int ch, FILE *f)
-//PUTCHAR_PROTOTYPE
+#ifdef __GNUC__
+     #define PUTCHAR_PROTOTYPE int _io_putchar(int ch)
+ #else
+     #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+ #endif /* __GNUC__*/
+PUTCHAR_PROTOTYPE
+{
+		
+    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF);
+//	vTaskSuspendAll();	xTaskResumeAll();
+    return ch;
+}
+
+////禁用ARM半主机模式（核心！否则printf不生效）
+//#pragma import(__use_no_semihosting)
+//void _sys_exit(int x) { x = x; }
+//struct __FILE {
+//    int handle;
+//    // 不需要额外成员，￿?小定义即可补全struct __FILE定义，让FILE变成完整类型
+//};
+
+//FILE __stdout; // 现在可以正常定义￿?
+
+//int fputc(int ch, FILE *f)
 //{ 
 //  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF); // 注意这个超时时间
 //  return ch;
 //}
-
-int fputc(int ch, FILE *f)
-{ 
-  HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, 0xFFFF); // 注意这个超时时间
-  return ch;
-}
 
 /* USER CODE END 0 */
 
@@ -99,9 +110,6 @@ void HAL_UART_MspInit(UART_HandleTypeDef* uartHandle)
     GPIO_InitStruct.Alternate = GPIO_AF7_USART1;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /* USART1 interrupt Init */
-    HAL_NVIC_SetPriority(USART1_IRQn, 5, 0);
-    HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspInit 1 */
 
   /* USER CODE END USART1_MspInit 1 */
@@ -125,8 +133,6 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef* uartHandle)
     */
     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_9|GPIO_PIN_10);
 
-    /* USART1 interrupt Deinit */
-    HAL_NVIC_DisableIRQ(USART1_IRQn);
   /* USER CODE BEGIN USART1_MspDeInit 1 */
 
   /* USER CODE END USART1_MspDeInit 1 */

@@ -68,7 +68,7 @@ typedef struct {  //1time？2读temp/humi/both	回调函数（x1.5
     
     float * temp;
     float * humi;
-    uint32_t * lifetime;
+    uint32_t lifetime;
     uint32_t * timestamp;
     void (*pf_callback)(float * , float *);
 }handler_aht_event_t;
