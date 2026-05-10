@@ -101,7 +101,7 @@ extern timebase_t timebase_ms;
 extern os_delay_t  os_delay_ms;
 
 //Driver layer test
-void Test1();
+void Test1(void);
 
 /* handler layer define ------------------------------------------------------------*/
 /* handler function instance ----------------------------------------------*/
@@ -147,7 +147,7 @@ extern handler_os_critical_t  os_critical;
 extern handler_os_thread_t  os_thread;
 
 /////Handler layer test
-void Test2();
+void Test2(void);
 void Test3(void);
 
 /**

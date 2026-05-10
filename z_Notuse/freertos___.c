@@ -298,9 +298,9 @@ sensor_interface_i2c_timebase_delay_t input_arg={
 
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
-  humi_temp_TaskHandle = osThreadNew(aht21_handler_thread_func, //taskfunc 是weak 在handler.c中重定义实现
-                                      &input_arg, 
-                                      &humi_temp_Task_attributes);
+  // humi_temp_TaskHandle = osThreadNew(aht21_handler_thread_func, //taskfunc 是weak 在handler.c中重定义实现
+  //                                     &input_arg, 
+  //                                     &humi_temp_Task_attributes);
   /* user_task 是发送队列消息的线程 */
   user_TaskHandle = osThreadNew(user_task_func,
                                 NULL,  
