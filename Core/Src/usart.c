@@ -41,10 +41,10 @@ PUTCHAR_PROTOTYPE
 //void _sys_exit(int x) { x = x; }
 //struct __FILE {
 //    int handle;
-//    // 不需要额外成员，￿?小定义即可补全struct __FILE定义，让FILE变成完整类型
+//    // 不需要额外成员，�??小定义即可补全struct __FILE定义，让FILE变成完整类型
 //};
 
-//FILE __stdout; // 现在可以正常定义￿?
+//FILE __stdout; // 现在可以正常定义�??
 
 //int fputc(int ch, FILE *f)
 //{ 

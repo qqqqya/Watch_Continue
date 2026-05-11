@@ -44,6 +44,7 @@
 /***4.	compiling BSP provided headers******* */
 
 #include "AHT21.h"
+#include "MPU6050.h"
 
 #include "delay.h"
 #include "system_adaptation.h"//LED
@@ -65,7 +66,7 @@
 /* USER CODE BEGIN PM */
 
 
-/**四个interface分别从core，driver还有OS层传过来，�?�过handler层传给driver�?? */
+/**四个interface分别从core，driver还有OS层传过来，�?�过handler层传给driver�???? */
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -153,9 +154,20 @@ void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
   /* Infinite loop */
+  /**----等待调度器成功之后在进行初始化，
+   * 避免在初始化过程中被调度器打断，导致问题
+   * 避免后续的任务调度vtaskdelay hard fault--必须用osdelay */
+  // delay_ms(500);-
+  osDelay(500);
+  bsp_mpu_driver_t p_mpu_driver_instance={0};
+  mpu_data_t p_data={0};
+  MPU6050_Test(&p_mpu_driver_instance);
 	for(;;)   
 	{	   
-    osDelay(2);
+    p_mpu_driver_instance.pf_get_accel(&p_mpu_driver_instance, &p_data);
+    log_i("ax = %f, ay = %f, az = %f\r\n",\
+       p_data.ax, p_data.ay, p_data.az);
+    osDelay(200);
     
 	}
   /* USER CODE END StartDefaultTask */

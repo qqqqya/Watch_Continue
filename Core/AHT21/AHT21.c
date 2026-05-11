@@ -238,7 +238,7 @@ void user_task_func(void *argument)
     log_d("userTaskFunction start_send event\r\n");
     log_d("userTaskFunction start_send event\r\n");
     osDelay(2000);
-    bsp_aht21_handler_read(&event);
+    // bsp_aht21_handler_read(&event);
     
 	}
   /* USER CODE END StartDefaultTask */

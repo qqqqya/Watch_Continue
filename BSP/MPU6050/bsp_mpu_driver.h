@@ -32,19 +32,20 @@
 
 #include "stdio.h"
 #include "stdint.h"
-#include "mpuxxxx_reg.h"
+#include "bsp_mpu6050_reg.h"
 
 
 //******************************* Defines ***********************************//
 #define OS_SUPPORTING
-#define DEBUG
+#define DEBUG_OUT(format, ...) log_i(format, ##__VA_ARGS__) /* Debug output  */
 //elog调试输出打印
 
-typedef enum
-{
-	MPU_IS_INITED            = 0,      /* Operation completed successfully         */
-	MPU_NOT_INITED          = 1,      /* General runtime error                    */
-} mpu_handler_init_t; 
+#define MPU_NOT_INITED        0            // Not init. flag 
+#define MPU_IS_INITED         1
+#define IIC_MEMADD_SIZE_8BIT 0x00000001U
+#define TIME_OUT_MS          1000
+#define MPU6050_DATA_PACKET_SIZE 14
+
 
 typedef enum
 {
@@ -64,25 +65,27 @@ typedef enum
 //******1.iic 实例结构体**********//
 
 typedef struct{     //void * bus  iicbus init--包含引脚等信息
+            //硬件iic指针
+    void *hi2c;             /* hi2c pointer to a I2C_HandleTypeDef structure */
     int8_t        (*pf_iic_init       ) (void*);
     int8_t        (*pf_iic_deinit     ) (void*); //反初始化
     int8_t        (*pf_iic_mem_read   ) (void*,   
-                                        uint8_t  *dev_addr,
-                                        uint8_t  *mem_addr, 
+                                        uint8_t  dev_addr,
+                                        uint8_t  mem_addr, 
                                         uint8_t   mem_size,/*设备 mem地址 长度*/
                                         uint8_t  *pdata,    /*数据 data大小*/
                                         uint8_t   size ,
                                         uint32_t   timeout   );//     
     int8_t        (*pf_iic_mem_write  ) (void*,   
-                                        uint8_t  *dev_addr,
-                                        uint8_t  *mem_addr, 
+                                        uint8_t  dev_addr,
+                                        uint8_t  mem_addr, 
                                         uint8_t   mem_size,
                                         uint8_t  *pdata,
                                         uint8_t   size ,
                                         uint32_t   timeout   );                  
     int8_t        (*pf_iic_mem_read_dma ) (void*,   
-                                        uint8_t  *dev_addr,
-                                        uint8_t  *mem_addr, 
+                                        uint8_t  dev_addr,
+                                        uint8_t  mem_addr, 
                                         uint8_t   mem_size,
                                         uint8_t  *pdata,
                                         uint8_t   size);//dma无需timeout？
@@ -97,13 +100,13 @@ typedef struct{
 }mpu_INT_interface_t;
 
 
-//******1.1 环形buf实例结构体**********//
+//******1.1 buf实例结构体**********//
 typedef struct{
-    uint32_t    (*pf_circular_init) (void *);/**初始化 cirbuf结构体内的信息 */
-    uint32_t    (*pf_circular_deinit) (void *);///head tail malloc什么的
-    uint32_t    (*pf_circular_buffer_put) (void *);
-    uint32_t    (*pf_circular_buffer_get) (void *);
-}mpu_circle_buf_interface_t;
+    uint32_t    (*pf_buf_init) (void *);/**初始化 buf结构体内的信息 */
+    uint32_t    (*pf_buf_deinit) (void *);///后面可以改成   cir head tail malloc什么的
+    uint32_t    (*pf_buf_put) (void *);
+    uint32_t    (*pf_buf_get) (void *);
+}mpu_buf_interface_t;
 
 //from core layer(hal库)
 //******2.timebase 实例结构体**********//
@@ -143,11 +146,11 @@ typedef struct{
                                         void * msg,
                                         uint32_t timeout);
     mpu_status_t (*semaphore_create_mutex)(void **  mutex_handler);
-    mpu_status_t (*semaphore_take_mutex)(void * const mutex_handler, uint32_t timeout);
+    mpu_status_t (*semaphore_take_mutex)(void * const mutex_handler);
     mpu_status_t (*semaphore_give_mutex)(void * const mutex_handler);
     mpu_status_t (*semaphore_delete_mutex)(void * const mutex_handler);
 
-    mpu_status_t (*semaphore_binary_create)(void **  binary_handler);
+    mpu_status_t (*semaphore_create_binary)(void **  binary_handler);
     /** @brief 这里往后就不太懂这个binary作用*/
     mpu_status_t (*semaphore_delete_binary) (void * const binary_handle);
     mpu_status_t (*semaphore_wait_binary)   (void * const binary_handle);
@@ -168,10 +171,34 @@ typedef struct{
 }mpu_os_interface_t;
 #endif
 typedef struct{///mpu6050的加速度陀螺仪数据结构体
-    int8_t x;
-    int8_t y;
-    int8_t z;
+    /* Raw accelerometer data from sensor */
+    int16_t accel_x_raw;
+    int16_t accel_y_raw;
+    int16_t accel_z_raw;
 
+    /* Processed accelerometer data in g units */
+    double ax;
+    double ay;
+    double az;
+    /*****加速度原始 处理 */
+
+    /* Raw gyroscope data from sensor */
+    int16_t gyro_x_raw;
+    int16_t gyro_y_raw;
+    int16_t gyro_z_raw;
+
+    /* Processed gyroscope data in degrees/s */
+    double gx;
+    double gy;
+    double gz;
+    /*****陀螺仪原始 处理 */
+/* Temperature reading in degrees Celsius */
+    float temperature;
+
+    /***kalman滤波之后的x y 信号 */
+    /* Kalman filter processed angles */
+    double kalman_angle_x;
+    double kalman_angle_y;
 
 }mpu_data_t;
 
@@ -188,13 +215,14 @@ typedef struct bsp_mpu_driver
     /* Core Layer  */
     mpu_iic_driver_instance_t   *p_iic_instance; //IIC实例指针
     mpu_INT_interface_t         *p_INT_instance; //mpu中断引脚实例指针
-    mpu_circle_buf_interface_t  *p_circle_buf_instance; //环形buf实例指针
+    mpu_buf_interface_t         *p_buf_instance; //buf实例指针
     mpu_timebases_ms_t          *p_timebase_ms; //timebase实例指针   
     mpu_delay_interface_t       *p_delay_interface; //delay接口
     /* OS Layer  */
 #ifdef OS_SUPPORTING
     mpu_yield_interface_t       *p_yield_interface; //操作系统让出CPU接口
     mpu_os_interface_t          *p_os_interface; //os接口
+    mpu_data_t                  *mpu_data; //mpu数据结构体实例
     void *  Q_handler; //队列句柄指针
     void *  mutex_handler; //互斥锁句柄指针
     void *  notify_handler; //消息通知句柄

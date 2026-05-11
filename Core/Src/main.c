@@ -19,6 +19,7 @@
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 #include "cmsis_os.h"
+#include "dma.h"
 #include "i2c.h"
 #include "usart.h"
 #include "gpio.h"
@@ -62,15 +63,15 @@ void MX_FREERTOS_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void test_log(void){
-  log_d("test log\r\n");
-  log_e("test log error\r\n");
-  log_w("test log warn\r\n");
-  log_i("test log info\r\n");
-  log_d("test log debug\r\n");
-  log_v("test log verbose\r\n");
-  // log_raw("test log raw\r\n");
-}
+//void test_log(void){
+//  log_d("test log\r\n");
+//  log_e("test log error\r\n");
+//  log_w("test log warn\r\n");
+//  log_i("test log info\r\n");
+//  log_d("test log debug\r\n");
+//  log_v("test log verbose\r\n");
+//  // log_raw("test log raw\r\n");
+//}
 /* USER CODE END 0 */
 
 /**
@@ -102,8 +103,9 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
+  MX_DMA_Init();
   MX_USART1_UART_Init();
-  MX_I2C1_Init();
+  MX_I2C2_Init();
   /* USER CODE BEGIN 2 */
   
  	elog_init();

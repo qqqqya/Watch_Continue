@@ -33,7 +33,7 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "bsp_mpu_driver.h"
-#include "bsp_mpu_handler.h"
+
 
 #include <stdbool.h>
 //******************************* Defines ***********************************//
@@ -57,6 +57,8 @@
 void aht21_handler_thread_func(void *argument);
 void user_task_func(void *argument);
 
+
+mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver);
 
 #endif
 
