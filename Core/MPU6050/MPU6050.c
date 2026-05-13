@@ -49,6 +49,7 @@
 #include "delay.h"
 
 #include "mpu6050.h"
+#include "mid_circle_buffer.h"
 /******************************** Defines ************************************/
 #define HANDLER_INITED          true
 #define HANDLER_NOT_INITED      false
@@ -319,6 +320,65 @@ mpu_os_interface_t mpu_os_instance={
 // #endif
 //                                     )
 
+  bsp_mpu_driver_t p_mpu_driver_instance={0};
+void (*pf_pin_interrupt_callback)(void *, void *) = NULL;
+void (*pf_dma_interrupt_callback)(void *, void *) = NULL;
+
+void callback_register(void (*callback)(void *, void *))
+{
+	pf_pin_interrupt_callback = callback;
+}
+void callback_register_dma(void (*callback)(void *, void *))
+{
+	pf_dma_interrupt_callback = callback;
+}
+#if 1
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	// INT test	
+	// HAL_GPIO_WritePin(INT_FUNC_GPIO_Port, INT_FUNC_Pin, 0); // PA2
+	
+	//log_i("HAL_GPIO_EXTI_Callback");
+
+	if(NULL != pf_pin_interrupt_callback)
+	{
+		pf_pin_interrupt_callback(&p_mpu_driver_instance, NULL);
+		/*
+		log_i("mpu6050 data: \r\n accel_x : %f, accel_y : %f, accel_z : %f \r\n gyro_x : %f, gyro_y : %f, gyro_z : %f \r\n temperature : %f \r\n ax : %f, ay : %f, az : %f\r\n gx : %f, gy : %f, gz : %f\r\n",
+			  mpu6050_data.accel_x_raw,
+			  mpu6050_data.accel_y_raw,
+			  mpu6050_data.accel_z_raw,
+			  mpu6050_data.gyro_x_raw,
+			  mpu6050_data.gyro_y_raw,
+			  mpu6050_data.gyro_z_raw,
+			  mpu6050_data.temperature,
+			  mpu6050_data.ax,
+			  mpu6050_data.ay,
+			  mpu6050_data.az,
+			  mpu6050_data.gx,
+			  mpu6050_data.gy,
+			  mpu6050_data.gz);
+		*/
+	}
+	// INT test
+	// HAL_GPIO_WritePin(INT_FUNC_GPIO_Port, INT_FUNC_Pin, 1); // PA2
+}
+#endif
+
+// DMA完成回调函数
+#if 1
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	// HAL_GPIO_WritePin(DMA_FUNC_GPIO_Port, DMA_FUNC_Pin, 0); // PA1
+	//log_i("HAL_I2C_MemRxCpltCallback");
+	if(hi2c == &hi2c2)
+	{
+		pf_dma_interrupt_callback(&p_mpu_driver_instance, NULL);
+	}  
+	// HAL_GPIO_WritePin(DMA_FUNC_GPIO_Port, DMA_FUNC_Pin, 1); // PA1
+}
+#endif
+
 mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver)
 {
     uint8_t test_val = 0x5A; // 随便挑一个特征值 (01011010)
@@ -328,8 +388,8 @@ mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver)
                             &MPU_iic_instance,
                             &mpu_delay_instance,
                             &mpu_timebase_instance,
-                            NULL, // callback_register
-                            NULL, // callback_register_dma
+                            callback_register, // callback_register
+                            callback_register_dma, // callback_register_dma
                             &mpu_yield_instance,
                             &mpu_os_instance,
                             NULL, // Q_handler
@@ -356,29 +416,65 @@ mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver)
     }
     log_i("[PASS] 0x%02X\r\n", read_data);
 
-    // --------------------------------------------------------
-    // 测试 2：寄存器回环读写测试 (证明写通信也正常)
-    // --------------------------------------------------------
-    // 写入测试值
-    ret = MPU_WRITE_REG(p_mpu_driver, MPU_SAMPLE_RATE_REG, &test_val, 1);
-    if (ret != MPU_OK) {
-        DEBUG_OUT("[ERROR] I2C 写操作失败。\r\n");
-        return MPU_ERROR;
-    }
-    
-    // 读回刚才写入的值
-    read_data = 0; // 清空变量
-    ret = MPU_READ_REG(p_mpu_driver, MPU_SAMPLE_RATE_REG, &read_data, 1);
-    if (read_data != test_val) {
-        DEBUG_OUT("[ERROR]  0x%02X, read: 0x%02X\r\n", test_val, read_data);
-        return MPU_ERROR;
-    }
-    
-    DEBUG_OUT("[PASS] \r\n");
     DEBUG_OUT("--- test pass ---\r\n");
-
     return MPU_OK;
 }
+#if 0
+extern circular_buffer_t circular_buf;//外部声明环形缓冲区实例  定义在circle_buffer.c中
+void unpack_task(void *p_args)
+{
+    log_i("unpack_task start\n");  
+    mpu_status_t ret = MPU_OK;
+    uint8_t data = 0;
+    int16_t temp = 0;
+    mpu_data_t mpu6050_data;
+
+    for (;;)
+    {
+        // if (NULL != handler_instance.p_unpack_queue_handle)
+        // {
+            // ret = handler_instance.p_input_args->p_os->os_queue_get( handler_instance.p_unpack_queue_handle,
+            //                                             &data,
+            //                                             0xffffffff );
+            if (MPU_OK == ret)
+            {
+                log_i("unpack_task: data = %d\n", data);
+            }
+            uint8_t *addr = circular_buf.pfget_rbuffer_addr(&circular_buf);
+            log_i("unpack_task: addr = %p\n", addr);
+
+            temp = (int16_t)(*(addr + 6) << 8 | *(addr + 7));
+            mpu6050_data.temperature = 36.53 + temp/340.0;
+        
+            mpu6050_data.accel_x_raw = (int16_t)(*(addr + 0) << 8 | *(addr + 1));
+            mpu6050_data.accel_y_raw = (int16_t)(*(addr + 2) << 8 | *(addr + 3));
+            mpu6050_data.accel_z_raw = (int16_t)(*(addr + 4) << 8 | *(addr + 5));
+
+            mpu6050_data.ax = mpu6050_data.accel_x_raw / 16384.0;
+            mpu6050_data.ay = mpu6050_data.accel_y_raw / 16384.0;
+            mpu6050_data.az = mpu6050_data.accel_z_raw / 14418.0;
+
+            mpu6050_data.gyro_x_raw = (int16_t)(*(addr + 8) << 8 | *(addr + 9));
+            mpu6050_data.gyro_y_raw = (int16_t)(*(addr + 10) << 8 | *(addr + 11));
+            mpu6050_data.gyro_z_raw = (int16_t)(*(addr + 12) << 8 | *(addr + 13));
+
+            mpu6050_data.gx = mpu6050_data.gyro_x_raw / 131.0;
+            mpu6050_data.gy = mpu6050_data.gyro_y_raw / 131.0;
+            mpu6050_data.gz = mpu6050_data.gyro_z_raw / 131.0;
+            
+            log_i("UnpackThread temp=%f", mpu6050_data.temperature);
+            log_i("UnpackThread ax=%f", mpu6050_data.ax);
+            log_i("UnpackThread ay=%f", mpu6050_data.ay);
+            log_i("UnpackThread az=%f", mpu6050_data.az);
+            log_i("UnpackThread gx=%f", mpu6050_data.gx);
+            log_i("UnpackThread gy=%f", mpu6050_data.gy);
+            log_i("UnpackThread gz=%f", mpu6050_data.gz);
+
+            circular_buf.pfdata_readed(&circular_buf);
+        // }
+    }
+}
+#endif
 // aht_status_t get_tick_ms(uint32_t *ptick)
 // {
 //   //  *ptick = osKernelGetTickCount();

@@ -38,6 +38,8 @@
 #include "bsp_mpu6050_reg.h"
 #include "elog.h"
 
+#include "mid_circle_buffer.h"//中间环形缓冲区
+
 /******************************** Defines ************************************/
 #define MPU_WRITE_REG(p_mpu_driver, reg, p_data, len)\
                         p_mpu_driver->p_iic_instance->pf_iic_mem_write(\
@@ -62,12 +64,21 @@
 /******************************** Declares ************************************/
 int8_t g_mpu_inited =   MPU_NOT_INITED;  //全局变量 记录是否实例化过了
 int8_t g_mpu_dev_id =   0;                  // 记录设备ID
-static uint32_t g_is_dma_readed = 0;
+
 
 static double g_accel_scale = 16384.0;
 static double g_gyro_scale = 131.0;
 
+static uint32_t g_is_dma_readed=0;//这三块对应的是dma搬运触发中断
+uint32_t mpu_flag_read()
+{
+    return g_is_dma_readed;
+}
 
+void mpu_flag_set(uint8_t flag)
+{
+    g_is_dma_readed = flag;
+}
 static mpu_status_t mpu_get_temperature(bsp_mpu_driver_t *p_mpu_driver, mpu_data_t *p_data)
 {
 #ifdef DEBUG
@@ -388,6 +399,7 @@ mpu_status_t mpu_driver_init(bsp_mpu_driver_t * const p_mpu_driver){
     }
     /*********1. init reg iic ****************/
     ret = mpu_init_reg_iic(p_mpu_driver);
+    /*********1.2. 根据情况设置****************/
     /*********2. init fifo mode****************/
     ret = mpu_fifo_init(p_mpu_driver);
     DEBUG_OUT("mpu_driver_init all ok\r\n");
@@ -409,6 +421,381 @@ mpu_status_t mpu_driver_deinit(bsp_mpu_driver_t * const p_mpu_driver){
     }
     g_mpu_inited = MPU_NOT_INITED;
     return ret;
+}
+static mpu_status_t mpu_get_interrupt_status_reg(bsp_mpu_driver_t *p_mpu_driver, uint8_t *p_data)
+{
+    mpu_status_t ret = MPU_OK;
+
+    ret = MPU_READ_REG(p_mpu_driver, MPU_INT_STA_REG, p_data, 1);
+    return ret;
+}
+
+/**
+ * @brief read fifo by reading one packet
+ *        only can be used when  ACCEL_FIFO_EN_BIT
+                                 XG_FIFO_EN_BIT
+                                 YG_FIFO_EN_BIT
+                                 ZG_FIFO_EN_BIT    are sets
+ * 
+ * @param[in]  p_mpu_driver: pointer to a mpu6050 driver structure
+ * @param[out] p_data: pointer to a mpu6050 data structure
+ * 
+ * @data: 2024-12-18
+ * 
+ * @version: 1.1.0
+ * 
+ * @return mpu_status_t
+*/
+static mpu_status_t mpu_read_fifo_packet(bsp_mpu_driver_t *p_mpu_driver, mpu_data_t *p_data)
+{
+    mpu_status_t ret = MPU_OK;
+    uint16_t fifo_count = 0;
+    uint16_t fifo_packet_count = 0;
+    uint8_t fifo_buffer[12] = {0};
+
+    // Get FIFO count
+    ret = MPU_READ_REG(p_mpu_driver, MPU_FIFO_CNTH_REG, fifo_buffer, 2);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("mpu_read_fifo read FIFO count error\r\n");
+#endif
+        return ret;
+    }
+
+    fifo_count = (fifo_buffer[0] << 8) | fifo_buffer[1];
+    
+#ifdef DEBUG
+    DEBUG_OUT("mpu_read_fifo fifo_count: %u\r\n", fifo_count);
+#endif
+    
+    // Read FIFO data in chunks of 12 bytes (6 bytes accel + 6 bytes gyro)
+
+    if (fifo_count >= 12)
+    {
+        fifo_packet_count = fifo_count / 12;
+
+        for (uint16_t i = 0; i < fifo_packet_count; i++)
+        {
+            ret = MPU_READ_REG(p_mpu_driver, MPU_FIFO_RW_REG, fifo_buffer, 12);
+            if (ret != MPU_OK)
+            {
+#ifdef DEBUG
+                DEBUG_OUT("mpu_read_fifo read FIFO data error\r\n");
+#endif
+                return ret;
+            }
+
+            // Process accel data
+            p_data[i].accel_x_raw = (int16_t)(fifo_buffer[0] << 8 | fifo_buffer[1]);
+            p_data[i].accel_y_raw = (int16_t)(fifo_buffer[2] << 8 | fifo_buffer[3]);
+            p_data[i].accel_z_raw = (int16_t)(fifo_buffer[4] << 8 | fifo_buffer[5]);
+
+            // Process gyro data
+            p_data[i].gyro_x_raw = (int16_t)(fifo_buffer[6]  << 8 | fifo_buffer[7]);
+            p_data[i].gyro_y_raw = (int16_t)(fifo_buffer[8]  << 8 | fifo_buffer[9]);
+            p_data[i].gyro_z_raw = (int16_t)(fifo_buffer[10] << 8 | fifo_buffer[11]);
+            
+            // Convert raw data to physical units
+            p_data[i].ax = (double)(p_data[i].accel_x_raw / g_accel_scale);
+            p_data[i].ay = (double)(p_data[i].accel_y_raw / g_accel_scale);
+            p_data[i].az = (double)(p_data[i].accel_z_raw / g_accel_scale);
+            
+            p_data[i].gx = (double)(p_data[i].gyro_x_raw / g_gyro_scale);
+            p_data[i].gy = (double)(p_data[i].gyro_y_raw / g_gyro_scale);
+            p_data[i].gz = (double)(p_data[i].gyro_z_raw / g_gyro_scale);
+
+#ifdef DEBUG
+            DEBUG_OUT("fifo data:\r\n");
+            DEBUG_OUT("ax: %lf, ay: %lf, az: %lf, gx: %lf, gy: %lf, gz: %lf\r\n",\
+                    p_data[i].ax,
+                    p_data[i].ay,
+                    p_data[i].az,
+                    p_data[i].gx,
+                    p_data[i].gy,
+                    p_data[i].gz );
+#endif
+        }
+    }
+    
+    return ret;
+}
+static mpu_status_t mpu_read_fifo_isr_occur(bsp_mpu_driver_t *p_mpu_driver, mpu_data_t *p_data)
+{
+
+    mpu_status_t ret = MPU_OK;
+#if 0  // can not be used, because the fifo data is not correct
+    uint16_t fifo_count = 0;
+    uint16_t fifo_packet_count = 0;
+    uint8_t fifo_buffer[12] = {0};
+
+    // Get FIFO count
+    ret = MPU_READ_REG(p_mpu_driver, MPU_FIFO_CNTH_REG, fifo_buffer, 2);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("mpu_read_fifo_isr_occur read FIFO count error\r\n");
+#endif
+        return ret;
+    }
+
+    fifo_count = (fifo_buffer[0] << 8) | fifo_buffer[1];
+    
+#ifdef DEBUG
+    DEBUG_OUT("mpu_read_fifo_isr_occur fifo_count: %u\r\n", fifo_count);
+#endif
+    
+    // Read FIFO data in chunks of 12 bytes (6 bytes accel + 6 bytes gyro)
+    if (fifo_count >= 12)
+    {
+        fifo_packet_count = fifo_count / 12;
+
+        for (uint16_t i = 0; i < fifo_packet_count; i++)
+        {
+            ret = MPU_READ_REG(p_mpu_driver, MPU_FIFO_RW_REG, fifo_buffer, 12);
+            if (ret != MPU_OK)
+            {
+#ifdef DEBUG
+                DEBUG_OUT("mpu_read_fifo read FIFO data error\r\n");
+#endif
+                return ret;
+            }
+
+            // Process accel data
+            p_data[i].accel_x_raw = (int16_t)(fifo_buffer[0] << 8 | fifo_buffer[1]);
+            p_data[i].accel_y_raw = (int16_t)(fifo_buffer[2] << 8 | fifo_buffer[3]);
+            p_data[i].accel_z_raw = (int16_t)(fifo_buffer[4] << 8 | fifo_buffer[5]);
+
+            // Process gyro data
+            p_data[i].gyro_x_raw = (int16_t)(fifo_buffer[6]  << 8 | fifo_buffer[7]);
+            p_data[i].gyro_y_raw = (int16_t)(fifo_buffer[8]  << 8 | fifo_buffer[9]);
+            p_data[i].gyro_z_raw = (int16_t)(fifo_buffer[10] << 8 | fifo_buffer[11]);
+            
+            // Convert raw data to physical units
+            p_data[i].ax = (double)(p_data[i].accel_x_raw / accel_scale);
+            p_data[i].ay = (double)(p_data[i].accel_y_raw / accel_scale);
+            p_data[i].az = (double)(p_data[i].accel_z_raw / accel_scale);
+            
+            p_data[i].gx = (double)(p_data[i].gyro_x_raw / gyro_scale);
+            p_data[i].gy = (double)(p_data[i].gyro_y_raw / gyro_scale);
+            p_data[i].gz = (double)(p_data[i].gyro_z_raw / gyro_scale);
+			            
+#ifdef DEBUG
+		DEBUG_OUT("fifo data:\r\n");
+        DEBUG_OUT("ax: %lf, ay: %lf, az: %lf, gx: %lf, gy: %lf, gz: %lf\r\n",\
+                  p_data[i].ax,
+                  p_data[i].ay,
+                  p_data[i].az,
+                  p_data[i].gx,
+                  p_data[i].gy,
+                  p_data[i].gz );
+#endif
+        }
+    }
+#endif
+    return ret;
+}
+
+
+static mpu_status_t mpu_set_interrupt_enable(bsp_mpu_driver_t *p_mpu_driver, uint8_t enable)
+{
+    mpu_status_t ret = MPU_OK;
+
+    ret = MPU_WRITE_REG(p_mpu_driver, MPU_INT_EN_REG, &enable, 1);
+    if(ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("mpu_set_interrupt_enable write MPU_INT_EN_REG error\r\n");
+#endif
+        return ret;
+    }
+
+    return ret;
+}
+void int_interrupt_callback(void *mpu_driver, void *mpu_data)
+{
+    DEBUG_OUT("=====int_interrupt_callback start=====\r\n");
+    mpu_status_t ret = MPU_OK;
+    bsp_mpu_driver_t *p_mpu_driver = NULL;
+	
+    if (NULL == mpu_driver)
+    {
+    DEBUG_OUT("int_interrupt_callback parameter error\r\n");
+    }
+
+    p_mpu_driver = (bsp_mpu_driver_t *)mpu_driver;
+
+    // if not os supporting, get all data
+#ifndef OS_SUPPORTING
+	
+    ret = mpu_get_all_data(p_mpu_driver, (mpu_data_t *)mpu_data);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("int_interrupt_callback mpu_get_all_data error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif
+    }
+
+#else
+
+    // 1. get buffer address
+    uint8_t *wbuff = NULL;
+	uint8_t data = 0;
+    wbuff = circular_buf.pfget_wbuffer_addr(&circular_buf);//获取写缓冲区地址
+#ifdef DEBUG
+    DEBUG_OUT("int_interrupt_callback wbuff = %p\r\n", wbuff);
+#endif
+
+    // 2. close interrupt of mpu
+    ret = mpu_set_interrupt_enable(p_mpu_driver, COLOSE_ALL);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("int_interrupt_callback write interrupt enable reg error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif
+    }
+	
+    //3. read the stauts of interrupt register
+    ret = mpu_get_interrupt_status_reg(p_mpu_driver, &data);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("int_interrupt_callback read inter reg data 11 error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif
+    }
+
+#ifdef DEBUG
+    DEBUG_OUT("int_interrupt_callback read inter reg data 11 = %#x", data);
+#endif
+    ret = mpu_get_interrupt_status_reg(p_mpu_driver, &data);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("int_interrupt_callback read inter reg data 22 error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif
+    }
+
+    DEBUG_OUT("int_interrupt_callback read inter reg data 22 = %#x", data);
+
+    // get timestamp
+    uint32_t timestamp_start; p_mpu_driver->p_timebase_ms->pf_timebase_gettickms(&timestamp_start);
+
+    DEBUG_OUT("get timestamp start : %d\r\n", timestamp_start);
+
+	// read data by dma
+    ret = p_mpu_driver->p_iic_instance->pf_iic_mem_read_dma(
+                                    p_mpu_driver->p_iic_instance->hi2c, 
+                                    (MPU_ADDR << 1) | 1, 
+                                    MPU_ACCEL_XOUTH_REG, 
+                                    IIC_MEMADD_SIZE_8BIT, 
+                                    wbuff, 
+                                    MPU6050_DATA_PACKET_SIZE);
+    if (ret != MPU_OK)
+    {
+
+        DEBUG_OUT("int_interrupt_callback read accel data error\r\n");
+    }
+#endif /* End of OS_SUPPORTING */
+
+
+    DEBUG_OUT("=====int_interrupt_callback end=====\r\n");
+}
+
+/**
+ * @brief mpu6050 dma interrupt callback
+ * 
+ * @param[in] p_mpu_driver: pointer to a mpu6050 driver structure
+ * 
+ * @return void
+*/
+void dma_interrupt_callback(void *mpu_driver, void *mpu_data)
+{
+    DEBUG_OUT("----------dma_interrupt_callback start----------\r\n");
+
+    mpu_status_t ret = MPU_OK;
+	bsp_mpu_driver_t *p_mpu_driver = NULL;
+
+    if (NULL == mpu_driver)
+    {
+    DEBUG_OUT("dma_interrupt_callback parameter error\r\n");
+    }
+    p_mpu_driver = (bsp_mpu_driver_t *)mpu_driver;
+    uint32_t timestamp_end; p_mpu_driver->p_timebase_ms->pf_timebase_gettickms(&timestamp_end);
+    DEBUG_OUT("get timestamp end : %d\r\n", timestamp_end);
+
+    // open data ready interrupt
+    ret = mpu_set_interrupt_enable(p_mpu_driver, DATA_RDY_EN_BIT(1) );
+    if (ret != MPU_OK)
+    {
+        DEBUG_OUT("dma_interrupt_callback open interrupt error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+    }
+    // change the buffer address
+    circular_buf.pfdata_writed(&circular_buf);
+
+/*********************************************************/
+#if 0 // queue test
+    // notify the handler
+    if (p_mpu_driver->queue_handle == NULL)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("queue_handle is NULL\r\n");
+#endif
+    }
+    uint8_t tx_data = 1;
+    ret = p_mpu_driver->p_os_interface->os_queue_put_isr(
+                                    p_mpu_driver->queue_handle,
+                                    &tx_data,
+                                    NULL
+                                    );
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("dma_interrupt_callback put queue error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif // DEBUG
+    }
+#endif // end of queue test
+/*********************************************************/
+#if 0 // binary test
+    ret = p_mpu_driver->p_os_interface->os_semaphore_signal_binary_isr(p_mpu_driver->semaphore_binary_handle, NULL);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("dma_interrupt_callback give semaphore error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif // DEBUG
+    }
+#endif // end of  binary test
+
+/*********************************************************/
+#if 0 // notify test
+
+    ret = p_mpu_driver->p_os_interface->os_semaphore_signal_notify_isr(
+                                notify_handle,
+                                1,
+                                eSetValueWithOverwrite,
+                                NULL);
+    if (ret != MPU_OK)
+    {
+#ifdef DEBUG
+        DEBUG_OUT("dma_interrupt_callback give semaphore error\r\n");
+        DEBUG_OUT("ret = %d\r\n", ret);
+#endif
+    }
+#endif // End of notify test
+
+#if 1 // global variable test
+    g_is_dma_readed = 1;
+
+#endif // End of notify test
+
+    DEBUG_OUT("-----dma_interrupt_callback end-----\r\n");
+
 }
 
 mpu_status_t mpu_driver_instance(
@@ -442,12 +829,12 @@ mpu_status_t mpu_driver_instance(
     }
     DEBUG_OUT("mpu_driver_instance start\r\n");
     // /*********0.0. callback  is available ****************/
-    // if( NULL==callback_register      ||
-    //     NULL==callback_register_dma    
-    // )
-    // {
-    //     return MPU_ERRORPARAMETER;
-    // }
+    if( NULL==callback_register      ||
+        NULL==callback_register_dma    
+    )
+    {
+        return MPU_ERRORPARAMETER;
+    }
     /*********0.1. iic instance is available *************/
     p_mpu_driver->p_iic_instance=p_iic_instance;///挂载iic实例
     if( NULL==p_iic_instance->pf_iic_init      ||
@@ -507,9 +894,9 @@ mpu_status_t mpu_driver_instance(
     p_mpu_driver->pf_get_accel               =mpu_get_accel;
     p_mpu_driver->pf_get_gyro                =mpu_get_gyro;
     p_mpu_driver->pf_get_all_data            =mpu_get_all_data;
-    // p_mpu_driver->pf_get_interrupt_status_reg
-    // p_mpu_driver->pf_read_fifo_packet   
-    // p_mpu_driver->pf_read_fifo_isr_occur
+    p_mpu_driver->pf_get_interrupt_status_reg=mpu_get_interrupt_status_reg;///新增3个--获取fifo包
+    p_mpu_driver->pf_read_fifo_packet        =mpu_read_fifo_packet;
+    p_mpu_driver->pf_read_fifo_isr_occur     =mpu_read_fifo_isr_occur;
     /**都是些设置寄存器的函数-- */
     // p_mpu_driver->pf_set_lpf                 =
     // p_mpu_driver->pf_set_rate                =   
@@ -529,6 +916,7 @@ mpu_status_t mpu_driver_instance(
     }
 
     /******3. 回调函数挂载 ******/
-
+    callback_register(int_interrupt_callback);///挂载到传入的入口参数
+    callback_register_dma(dma_interrupt_callback);
     return ret;
 }

@@ -336,7 +336,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F411xE</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../BSP/LED;../SYSTEM;../Core/IIC;../Core/Delay;../BSP/AHT21;../easylogger/inc;../RTT;../Core/AHT21;../Core/MPU6050;../BSP/MPU6050</IncludePath>
+              <IncludePath>../Core/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc;../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F4xx/Include;../Drivers/CMSIS/Include;../Middlewares/Third_Party/FreeRTOS/Source/include;../Middlewares/Third_Party/FreeRTOS/Source/CMSIS_RTOS_V2;../Middlewares/Third_Party/FreeRTOS/Source/portable/RVDS/ARM_CM4F;../BSP/LED;../SYSTEM;../Core/IIC;../Core/Delay;../BSP/AHT21;../easylogger/inc;../RTT;../Core/AHT21;../Core/MPU6050;../BSP/MPU6050;..\BSP\circle_buffer</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -1582,6 +1582,11 @@
               <FileName>bsp_mpu_handler.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\BSP\MPU6050\bsp_mpu_handler.c</FilePath>
+            </File>
+            <File>
+              <FileName>mid_circle_buffer.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\circle_buffer\mid_circle_buffer.c</FilePath>
             </File>
           </Files>
         </Group>

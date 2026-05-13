@@ -33,6 +33,7 @@
 #include "stdio.h"
 #include "stdint.h"
 #include "bsp_mpu6050_reg.h"
+#include "mid_circle_buffer.h"
 
 
 //******************************* Defines ***********************************//
@@ -45,7 +46,7 @@
 #define IIC_MEMADD_SIZE_8BIT 0x00000001U
 #define TIME_OUT_MS          1000
 #define MPU6050_DATA_PACKET_SIZE 14
-
+extern circular_buffer_t circular_buf;
 
 typedef enum
 {
@@ -249,6 +250,13 @@ typedef struct bsp_mpu_driver
     mpu_status_t (*pf_wakeup)              (void *);
     mpu_status_t (*pf_set_gyro_fsr)        (void *, uint8_t);
     mpu_status_t (*pf_set_accel_fsr)       (void *, uint8_t);
+    mpu_status_t (*pf_get_temperature)     (void *, mpu_data_t *);
+    mpu_status_t (*pf_get_accel)           (void *, mpu_data_t *);
+    mpu_status_t (*pf_get_gyro)            (void *, mpu_data_t *);
+    mpu_status_t (*pf_get_all_data)        (void *, mpu_data_t *);
+    mpu_status_t (*pf_get_interrupt_status_reg)(void *, uint8_t *);
+    mpu_status_t (*pf_read_fifo_packet)    (void *p_mpu_driver, mpu_data_t *p_data);
+    mpu_status_t (*pf_read_fifo_isr_occur) (void *p_mpu_driver, mpu_data_t *p_data);
     mpu_status_t (*pf_set_lpf)             (void *, uint8_t);
     mpu_status_t (*pf_set_rate)            (void *, uint8_t);
     mpu_status_t (*pf_set_interrupt_enable)(void *, uint8_t);
@@ -258,13 +266,6 @@ typedef struct bsp_mpu_driver
     mpu_status_t (*pf_set_pwr_mgmt1_reg)   (void *, uint8_t);
     mpu_status_t (*pf_set_pwr_mgmt2_reg)   (void *, uint8_t);
     mpu_status_t (*pf_set_fifo_en_reg)     (void *, uint8_t);    
-    mpu_status_t (*pf_get_temperature)     (void *, mpu_data_t *);
-    mpu_status_t (*pf_get_accel)           (void *, mpu_data_t *);
-    mpu_status_t (*pf_get_gyro)            (void *, mpu_data_t *);
-    mpu_status_t (*pf_get_all_data)        (void *, mpu_data_t *);
-    mpu_status_t (*pf_get_interrupt_status_reg)(void *, uint8_t *);
-    mpu_status_t (*pf_read_fifo_packet)    (void *p_mpu_driver, mpu_data_t *p_data);
-    mpu_status_t (*pf_read_fifo_isr_occur) (void *p_mpu_driver, mpu_data_t *p_data);
 } bsp_mpu_driver_t;
 
 //******************************* Functions ***********************************//
@@ -284,5 +285,6 @@ mpu_status_t mpu_driver_instance(
                     void *  binary_handler //二值信号量句柄
 #endif
                                     );
-
+uint32_t mpu_flag_read();
+void mpu_flag_set(uint8_t flag);
 #endif//end of file
