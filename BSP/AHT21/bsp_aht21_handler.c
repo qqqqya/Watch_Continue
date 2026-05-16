@@ -167,7 +167,9 @@ static handler_aht_status_t get_humi_temp(
                                                                 temp_val);
             break;
         case HUMI_TEMP_BOTH://p_handler_aht21_instance->last_humi_tick  init=0   ||  0 == tim
-        if((tim - p_handler_aht21_instance->last_humi_tick) > p_event->lifetime  ||  p_event->lifetime > tim ){
+        if((tim - p_handler_aht21_instance->last_humi_tick) > p_event->lifetime  ||
+            p_event->lifetime > tim )//当前tim没达到设定的新鲜度 也进行读取-不然是000
+        {
             ret = Handler_AHT21_instance->pf_read_humi(Handler_AHT21_instance,
                                                                     humi_val);
             ret = Handler_AHT21_instance->pf_read_temp(Handler_AHT21_instance,

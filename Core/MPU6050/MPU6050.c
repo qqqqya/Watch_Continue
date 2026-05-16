@@ -305,33 +305,19 @@ mpu_os_interface_t mpu_os_instance={
     .semaphore_signal_notify_isr=os_semaphore_signal_notify_isr,
     .semaphore_wait_notify=os_semaphore_wait_notify,
 };
-// mpu_status_t mpu_driver_instance( p_mpu_driver,&MPU_iic_instance,
-//                                     mpu_delay_interface_t       * const mpu_delay_interface_t, //delay接口
-//                                     mpu_timebases_ms_t  *const p_timebase_ms,
-//                 void (*callback_register)    (void (*callback)(void *, void *)),
-//                 void (*callback_register_dma)(void (*callback)(void *, void *)),
-// #ifdef OS_SUPPORTING
-//                                     mpu_yield_interface_t   * const p_yield_interface,
-//                                     mpu_os_interface_t * const p_os_interface, //os接口
-//                     void *  Q_handler, //队列句柄指针
-//                     void *  mutex_handler, //互斥锁句柄指针
-//                     void *  notify_handler, //消息通知句柄
-//                     void *  binary_handler //二值信号量句柄
-// #endif
-//                                     )
-
+mpu_input_arg_t input_arg_mpu={
+    .p_delay_interface=&mpu_delay_instance,
+    .p_iic_driver_instance=&MPU_iic_instance,
+    .p_timebases_ms=&mpu_timebase_instance,
+    .p_yield_interface=&mpu_yield_instance,
+    .p_os_interface=&mpu_os_instance,
+};
+#if 0
   bsp_mpu_driver_t p_mpu_driver_instance={0};
 void (*pf_pin_interrupt_callback)(void *, void *) = NULL;
 void (*pf_dma_interrupt_callback)(void *, void *) = NULL;
 
-void callback_register(void (*callback)(void *, void *))
-{
-	pf_pin_interrupt_callback = callback;
-}
-void callback_register_dma(void (*callback)(void *, void *))
-{
-	pf_dma_interrupt_callback = callback;
-}
+
 #if 1
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 {
@@ -378,7 +364,9 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
 	// HAL_GPIO_WritePin(DMA_FUNC_GPIO_Port, DMA_FUNC_Pin, 1); // PA1
 }
 #endif
+#endif
 
+#if 0
 mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver)
 {
     uint8_t test_val = 0x5A; // 随便挑一个特征值 (01011010)
@@ -419,6 +407,8 @@ mpu_status_t MPU6050_Test(bsp_mpu_driver_t *p_mpu_driver)
     DEBUG_OUT("--- test pass ---\r\n");
     return MPU_OK;
 }
+#endif
+
 #if 0
 extern circular_buffer_t circular_buf;//外部声明环形缓冲区实例  定义在circle_buffer.c中
 void unpack_task(void *p_args)

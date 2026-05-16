@@ -332,7 +332,7 @@ static mpu_status_t mpu_init_reg_iic(bsp_mpu_driver_t * const p_mpu_driver){
     
     //Initialize I2C
     p_mpu_driver->p_iic_instance->pf_iic_init(NULL);
-    //Device Reset--PWR   (uint8_t[]){0x80}  &DEVICE_RESET_BIT(1)
+    //Device Reset--PWR  <<6 (uint8_t[]){0x80}  &DEVICE_RESET_BIT(1)
     MPU_WRITE_REG(p_mpu_driver, MPU_PWR_MGMT1_REG,(uint8_t[]){DEVICE_RESET_BIT(1)}, 1);
     /////Delay 100ms for reset to complete
 #ifdef OS_SUPPORTING
@@ -340,12 +340,12 @@ static mpu_status_t mpu_init_reg_iic(bsp_mpu_driver_t * const p_mpu_driver){
 #else
     p_mpu_driver->p_delay_interface->pf_delay_ms(100);
 #endif
-    //唤醒传感器 (Wake Up)--PWR
+    //唤醒传感器 (Wake Up)--PWR  <<7
     MPU_WRITE_REG(p_mpu_driver, MPU_PWR_MGMT1_REG,(uint8_t[]){SLEEP_BIT(0)}, 1);
 
-    //配置陀螺仪量程--fsr  Gyroscope for ±2000°/s (0x03)   case 0x03: gyro_scale = 16.4;
+    //配置陀螺仪量程--fsr  Gyroscope for ±2000°/s (0x03) 16.4  case 0x03: gyro_scale = 16.4;
     ret = mpu_set_gyro_fsr(p_mpu_driver, FS_SEL_BIT(0X03));//MPU_GYRO_CFG_REG  0x18
-    //配置加速度计量程  Accelerometer for ±2g (0x00 << 3)   case 0x03{<<3}: accel_scale = 2048.0;
+    //配置加速度计量程  Accelerometer for ±2g (0x00 << 3) 16384  case 0x03{<<3}: accel_scale = 2048.0;
     ret = mpu_set_accel_fsr(p_mpu_driver, AFS_SEL_BIT(0X00));
        
     
@@ -372,7 +372,7 @@ static mpu_status_t mpu_init_reg_iic(bsp_mpu_driver_t * const p_mpu_driver){
         DEBUG_OUT("mpu_init_reg_iic verify device id :%02x\r\n", id_recv);
                     // MPU_READ_REG(p_mpu_driver, MPU_GYRO_CFG_REG, &id_recv, 1);
                     //     DEBUG_OUT("mpu_init_reg_iic verify gyro cfg :%02x\r\n", id_recv);
-    //设置时钟源
+    //设置时钟源        PLL with X axis gyroscope reference
     MPU_WRITE_REG(p_mpu_driver, MPU_PWR_MGMT1_REG,(uint8_t[]){CLKSEL_BIT(0x01) }, 1);//MPU_PWR_MGMT1_REG
     //解除各轴待机
     MPU_WRITE_REG(p_mpu_driver, MPU_PWR_MGMT2_REG,(uint8_t[]){   LP_WAKE_CTRL_BIT(0) | 
@@ -693,7 +693,7 @@ void int_interrupt_callback(void *mpu_driver, void *mpu_data)
                                     MPU_ACCEL_XOUTH_REG, 
                                     IIC_MEMADD_SIZE_8BIT, 
                                     wbuff, 
-                                    MPU6050_DATA_PACKET_SIZE);
+                                    MPU6050_DATA_PACKET_SIZE);//14size
     if (ret != MPU_OK)
     {
 
@@ -736,7 +736,7 @@ void dma_interrupt_callback(void *mpu_driver, void *mpu_data)
     }
     // change the buffer address
     circular_buf.pfdata_writed(&circular_buf);
-
+    /*****dma中断完成  通知handler p_mpu_driver->queue_handle,在instance中挂载*/
 /*********************************************************/
 #if 0 // queue test
     // notify the handler
@@ -907,6 +907,7 @@ mpu_status_t mpu_driver_instance(
     // p_mpu_driver->pf_set_pwr_mgmt1_reg 
     // p_mpu_driver->pf_set_pwr_mgmt2_reg  
     // p_mpu_driver->pf_set_fifo_en_reg    
+    p_mpu_driver->Q_handler=Q_handler;//这里是handler传进来的
 
     /******2. bsp_mpu_driver_t内init ******/
     ret=mpu_driver_init(p_mpu_driver);

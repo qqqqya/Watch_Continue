@@ -36,7 +36,7 @@
 #include "cmsis_os.h"
 //2.2 Core
 #include "iic_hal.h"
-
+#include "i2c.h"
 /***3.	OS Layer********************* */
 #include "FreeRTOS.h"
 #include "task.h"
@@ -45,6 +45,9 @@
 
 #include "AHT21.h"
 #include "MPU6050.h"
+#include "bsp_mpu_handler.h"
+#include "unpack.h"
+
 #include "mid_circle_buffer.h"
 
 #include "delay.h"
@@ -72,7 +75,17 @@
 
 /* Private variables ---------------------------------------------------------*/
 /* USER CODE BEGIN Variables */
-extern bsp_mpu_driver_t p_mpu_driver_instance;
+// extern bsp_mpu_driver_t p_mpu_driver_instance;/******************** */
+extern bsp_mpu_handler_t handler_instance;
+
+extern mpu_os_interface_t mpu_os_instance;
+extern mpu_yield_interface_t mpu_yield_instance;
+extern mpu_timebases_ms_t mpu_timebase_instance;
+extern mpu_delay_interface_t mpu_delay_instance;
+extern mpu_iic_driver_instance_t MPU_iic_instance;
+extern mpu_input_arg_t input_arg_mpu;
+TaskHandle_t mpu_handler_threadHandle = NULL;
+
 /* USER CODE END Variables */
 /* Definitions for defaultTask */
 osThreadId_t defaultTaskHandle;
@@ -84,7 +97,55 @@ const osThreadAttr_t defaultTask_attributes = {
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
+void (*pf_pin_interrupt_callback)(void *, void *) = NULL;
+void (*pf_dma_interrupt_callback)(void *, void *) = NULL;
 
+#if 1
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+	// INT test	
+	// HAL_GPIO_WritePin(INT_FUNC_GPIO_Port, INT_FUNC_Pin, 0); // PA2
+	
+	//log_i("HAL_GPIO_EXTI_Callback");
+
+	if(NULL != pf_pin_interrupt_callback)
+	{
+		pf_pin_interrupt_callback(handler_instance.p_mpu_driver, NULL);
+		/*
+		log_i("mpu6050 data: \r\n accel_x : %f, accel_y : %f, accel_z : %f \r\n gyro_x : %f, gyro_y : %f, gyro_z : %f \r\n temperature : %f \r\n ax : %f, ay : %f, az : %f\r\n gx : %f, gy : %f, gz : %f\r\n",
+			  mpu6050_data.accel_x_raw,
+			  mpu6050_data.accel_y_raw,
+			  mpu6050_data.accel_z_raw,
+			  mpu6050_data.gyro_x_raw,
+			  mpu6050_data.gyro_y_raw,
+			  mpu6050_data.gyro_z_raw,
+			  mpu6050_data.temperature,
+			  mpu6050_data.ax,
+			  mpu6050_data.ay,
+			  mpu6050_data.az,
+			  mpu6050_data.gx,
+			  mpu6050_data.gy,
+			  mpu6050_data.gz);
+		*/
+	}
+	// INT test
+	// HAL_GPIO_WritePin(INT_FUNC_GPIO_Port, INT_FUNC_Pin, 1); // PA2
+}
+#endif
+
+// DMA完成回调函数
+#if 1
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c)
+{
+	// HAL_GPIO_WritePin(DMA_FUNC_GPIO_Port, DMA_FUNC_Pin, 0); // PA1
+	//log_i("HAL_I2C_MemRxCpltCallback");
+	if(hi2c == &hi2c2)
+	{
+		pf_dma_interrupt_callback(handler_instance.p_mpu_driver, NULL);
+	}  
+	// HAL_GPIO_WritePin(DMA_FUNC_GPIO_Port, DMA_FUNC_Pin, 1); // PA1
+}
+#endif
 
 /* USER CODE END FunctionPrototypes */
 
@@ -122,7 +183,10 @@ void MX_FREERTOS_Init(void) {
   /* creation of defaultTask */
   defaultTaskHandle = osThreadNew(StartDefaultTask, NULL, &defaultTask_attributes);
 
-  /* USER CODE BEGIN RTOS_THREADS */
+  xTaskCreate(mpu_handler_thread_func, "mpu_handler_thread", 128 * 10, 
+              &input_arg_mpu, osPriorityNormal, &mpu_handler_threadHandle);
+  xTaskCreate(unpack_thread_func, "unpack_thread", 128 * 10, 
+              NULL, osPriorityNormal, NULL);  /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
 
 /**  humi_temp_TaskHandle = osThreadNew(aht21_handler_thread_func, //taskfunc 是weak 在handler.c中重定义实现
@@ -157,63 +221,16 @@ void StartDefaultTask(void *argument)
   // delay_ms(500);-
   osDelay(500);
 
-  mpu_data_t p_data={0};
-  MPU6050_Test(&p_mpu_driver_instance);
-  buffer_init(&circular_buf, MPU6050_DATA_PACKET_SIZE);
-  mpu_data_t mpu6050_data;///通过都地址获取到的数据，存储在这个结构体中
+  // mpu_data_t p_data={0};
+  // MPU6050_Test(&p_mpu_driver_instance);
+  // buffer_init(&circular_buf, MPU6050_DATA_PACKET_SIZE);
+  // mpu_data_t mpu6050_data;///通过都地址获取到的数据，存储在这个结构体中
 
-  uint8_t *rbuff = NULL;
+  // uint8_t *rbuff = NULL;
 	for(;;)   
 	{	   
 
-    /**INT触发--读取数据 */
-
-    // p_mpu_driver_instance.pf_get_accel(&p_mpu_driver_instance, &p_data);
-    // log_i("ax = %f, ay = %f, az = %f\r\n",\
-    //    p_data.ax, p_data.ay, p_data.az);
-    // 检查全局变量，看 DMA 是否完成了一次搬运
-        // if (mpu_flag_read() == 1)
-        // {
-        //     // 清除标志位
-        //     mpu_flag_set(0);
-if (1 == mpu_flag_read()){
-            // 4. 从环形缓冲区获取【读指针】
-            // (这里假设你的 buffer_interface 提供了获取读地址的接口)
-            uint8_t *addr = circular_buf.pfget_rbuffer_addr(&circular_buf);
-            log_i("unpack_task: addr = %p\n", addr);
-              // temp = (int16_t)(*(addr + 6) << 8 | *(addr + 7));
-              // mpu6050_data.temperature = 36.53 + temp/340.0;
-          
-              mpu6050_data.accel_x_raw = (int16_t)(*(addr + 0) << 8 | *(addr + 1));
-              mpu6050_data.accel_y_raw = (int16_t)(*(addr + 2) << 8 | *(addr + 3));
-              mpu6050_data.accel_z_raw = (int16_t)(*(addr + 4) << 8 | *(addr + 5));
-
-              mpu6050_data.ax = mpu6050_data.accel_x_raw / 16384.0;
-              mpu6050_data.ay = mpu6050_data.accel_y_raw / 16384.0;
-              mpu6050_data.az = mpu6050_data.accel_z_raw / 14418.0;
-
-              mpu6050_data.gyro_x_raw = (int16_t)(*(addr + 8) << 8 | *(addr + 9));
-              mpu6050_data.gyro_y_raw = (int16_t)(*(addr + 10) << 8 | *(addr + 11));
-              mpu6050_data.gyro_z_raw = (int16_t)(*(addr + 12) << 8 | *(addr + 13));
-
-              mpu6050_data.gx = mpu6050_data.gyro_x_raw / 131.0;
-              mpu6050_data.gy = mpu6050_data.gyro_y_raw / 131.0;
-              mpu6050_data.gz = mpu6050_data.gyro_z_raw / 131.0;
-              
-              log_i("UnpackThread temp=%f", mpu6050_data.temperature);
-              log_i("UnpackThread ax=%f", mpu6050_data.ax);
-              log_i("UnpackThread ay=%f", mpu6050_data.ay);
-              log_i("UnpackThread az=%f", mpu6050_data.az);
-              log_i("UnpackThread gx=%f", mpu6050_data.gx);
-              log_i("UnpackThread gy=%f", mpu6050_data.gy);
-              log_i("UnpackThread gz=%f", mpu6050_data.gz);
-
-              circular_buf.pfdata_readed(&circular_buf);
-             mpu_flag_set(0);
-}
-    // osDelay(2);
-    
-	}
+  }
   /* USER CODE END StartDefaultTask */
 }
 
