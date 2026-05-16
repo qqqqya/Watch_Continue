@@ -128,5 +128,32 @@ void mpu_handler_thread_func(void *p_input_arg){
                 );                
             }
             mpu_flag_set(0);
+#if 0 // queue test
+        // Get the data from the mpuxxx queue
+        ret = handler_instance.p_input_args->p_os->os_queue_get(handler_instance.p_queue_handle,
+                                                    &data,
+                                                    0xffffffff);
+        if (ret != MPUxxx_OK)
+        {
+#ifdef DEBUG
+            DEBUG_OUT("mpuxxx_handler_thread: queue get failed\n");
+#endif
+        }
+
+#ifdef DEBUG
+        DEBUG_OUT("mpuxxx_handler_thread: data = %d\n", data);
+#endif
+
+#endif // queue test
+/*********************************************************/
+#if 0 // binary test
+        ret = handler_instance.p_input_args->p_os->os_semaphore_wait_binary(handler_instance.semaphore_binary_handle);
+        if (ret != MPUxxx_OK)
+        {
+#ifdef DEBUG
+            DEBUG_OUT("mpuxxx_handler_thread: semaphore wait failed\n");
+#endif
+		}
+#endif // binary test            
     }
 }
